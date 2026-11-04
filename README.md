@@ -10,6 +10,7 @@ No subscriptions, no ads, no API keys. Free for the person who runs it and, with
 
 - **Honest resume review.** A 7-second skim, then a careful read: a score out of 100 added up from six parts (relevance, impact, progression, clarity, credibility, standards), your strongest point, and a numbered plan of what to fix first.
 - **Roles you can apply to,** ranked for the roles you're aiming for, with search links to job boards in your region.
+- **Certifications worth getting** for the roles you're aiming for, each with what you need first and a link to the issuer's official page.
 - **Job-fit check.** Every requirement in a job post marked met, partial or missing, plus the exact keywords to add.
 - **Cover letter** in the business-letter format of the country you're applying in.
 - **Apply fixes for me.** Sam rewrites your resume with the fixes you tick, reviews it again, and gives you a PDF.
@@ -37,6 +38,7 @@ Where norms are mixed (photos in Germany or the Gulf, personal details in India)
 - A resume or letter PDF can't be downloaded while an `[X]` or `[bracket]` blank is left.
 - PDFs are real text (not images), so applicant tracking systems can read them.
 - Personal-detail checks (date of birth, marital status, ID numbers and so on) follow your region's norms.
+- Certifications come only from a fixed list of about 100 that employers name in job posts, each checked on the issuer's own site (November 2026). The AI picks from the list; the names, requirements and links come from the list itself. Certifications you already hold, ones for other regions, and ones that need more years of experience than your dated jobs show are removed in code. Prices aren't shown because they change.
 
 Scores are a guide to readability and fit, not a prediction of any company's applicant tracking system.
 

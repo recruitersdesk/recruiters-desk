@@ -30,7 +30,7 @@ async function pdfText(blob) {
     ok("review: model text never becomes HTML", !rv.querySelector("img") && rv.textContent.includes("<img src=x"));
     ok("review: score is the rubric total (26+21+12+12+8+5, not the model's 60)", rv.querySelectorAll(".rb").length === 6 && rv.querySelector(".rubric").textContent.includes("5/5") && rv.querySelector(".ring .num").textContent.startsWith("84"), rv.querySelector(".rubric")?.textContent);
     ok("review: prompt has research method", c1.input.includes("PASS 1, the 7-second skim") && c1.input.includes("relevance (0-30)"));
-    ok("review: summary rail + section tabs", rv.querySelector(".split > .srail .ring") && rv.querySelectorAll(".subtabs .subtab").length === 5, rv.querySelectorAll(".subtabs .subtab").length);
+    ok("review: summary rail + section tabs", rv.querySelector(".split > .srail .ring") && rv.querySelectorAll(".subtabs .subtab").length === 6, rv.querySelectorAll(".subtabs .subtab").length);
     const tabsVisible = () => [...rv.querySelectorAll(".subpane")].filter(p => !p.hidden).map(p => p.dataset.key).join(",");
     ok("review: only the plan shows at first", tabsVisible() === "plan", tabsVisible());
     rv.querySelector('.subtab[data-key="roles"]').click();
@@ -126,6 +126,14 @@ async function pdfText(blob) {
     ok("roles: target roles first (by fit), fallback last, empty dropped", rt.join("|") === "Junior AI Engineer|Machine Learning Engineer|Bogus Role|Full Stack DeveloperFallback", rt.join("|"));
     ok("roles: unknown fit shown as stretch", rs && /stretch fit/.test(rs.querySelectorAll(".item")[2].textContent), rs && rs.textContent);
     ok("best card says it's for your goal", $("rp-review").querySelector(".fact.best .k").textContent === "Best fit for your goal");
+    const ct = $("rp-review").querySelector('.subtab[data-key="certs"]');
+    ok("certs: tab shows only real catalog entries", ct && ct.textContent.includes("Certifications") && ct.textContent.includes("1"), ct && ct.textContent);
+    ct && ct.click();
+    const cs = [...$("rp-review").querySelectorAll(".sec")].find(x => x.querySelector("h4").textContent.startsWith("Certifications that would help"));
+    const cl = cs && cs.querySelector(".links a");
+    ok("certs: name and official link come from the checked list", cs && cs.textContent.includes("AWS Certified AI Practitioner") && !cs.textContent.includes("fake") && cl.href === "https://aws.amazon.com/certification/certified-ai-practitioner/", cs && cs.textContent);
+    ok("certs: no prices quoted", cs && !/USD|\$\d/.test(cs.textContent), cs && cs.textContent);
+    ok("certs: how Sam picks is explained, folded", [...$("rp-review").querySelectorAll(".howto summary")].some(x => x.textContent === "How Sam picks certifications") && !$("rp-review").querySelector(".howto").open);
     // honesty enforced in code
     const rr = { roles: [{ title: "GenAI Developer", fit: "strong", months: 4 }, { title: "IT Support Analyst", fit: "strong", months: 28 }, { title: "Old shape", fit: "strong" }] }; sortRoles(rr);
     ok("roles: 'strong' needs 12+ dated months; older results keep theirs", rr.roles.find(x => x.title === "GenAI Developer").fit === "good" && rr.roles.find(x => x.title === "IT Support Analyst").fit === "strong" && rr.roles.find(x => x.title === "Old shape").fit === "strong", JSON.stringify(rr.roles));
@@ -230,6 +238,12 @@ async function pdfText(blob) {
     $("tryExample").click();
     ok("example loads", resumeEl.value.includes("ALEX RIVERA") && !$("exampleNote").hidden && $("padName").textContent.includes("example"));
     ok("example docx name", (fileLabel.name).replace(/\.[^.]+$/, "").replace(/\(example\)|\b(resume|cv)\b/gi, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") === "alex-rivera");
+    // certifications: only checked ones, for the region, not already held, and only if the dates meet the issuer's rule
+    const cd = { roles: [{ months: 14 }], certs: [{ id: " AWS-AI-Practitioner ", why: "x" }, { id: "made-up" }, { id: "aws-ai-practitioner" }, { id: "cissp" }, { id: "cipd-level5" }, { id: "comptia-security-plus" }, { id: "psm-i" }, { id: "cka" }, { id: "capm" }] };
+    pickCerts(cd, "CERTIFICATIONS\nCompTIA Security+ (2024)", REGIONS.ca);
+    ok("certs: unknown, duplicate, wrong-region, already-held and not-yet-eligible are dropped; max 4", cd.certs.map(x => x.id).join("|") === "aws-ai-practitioner|psm-i|cka|capm", cd.certs.map(x => x.id).join("|"));
+    ok("certs: catalog goes only in the 'more' half, filtered by region", REVIEW_PROMPT("r", "", REGIONS.uk, "more").includes("cipd-level5") && !REVIEW_PROMPT("r", "", REGIONS.ca, "more").includes("cipd-level5") && !REVIEW_PROMPT("r", "", REGIONS.ca, "core").includes("aws-ai-practitioner"));
+    ok("certs: every entry has an official https link and a region", CERTS.length > 90 && CERTS.every(c => /^https:\/\//.test(c.url) && c.regions.length && c.name && c.why_demand && Number.isFinite(c.months)), CERTS.filter(c => !/^https:/.test(c.url)).map(c => c.id).join());
     // clearing
     $("go-review").click(); await wait(400);
     $("removeResume").click(); await wait(20);

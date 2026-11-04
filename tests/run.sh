@@ -20,7 +20,7 @@ m=re.search(r'<pre id=\"T\">(.*?)</pre>',sys.stdin.read(),re.S)
 T=json.loads(html.unescape(m.group(1))) if m else [{'name':'page did not finish','pass':False}]
 bad=[t for t in T if not t['pass']]
 print('$n: %d/%d passed' % (len(T)-len(bad), len(T)))
-for t in bad: print('  FAIL', t['name'], (t.get('info') or '')[:300])
+for t in bad: print('  FAIL', t['name'], str(t.get('info') or '')[:300])
 sys.exit(1 if bad else 0)" || fail=1
 done
 exit $fail
