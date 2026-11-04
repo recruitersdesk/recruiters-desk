@@ -64,7 +64,7 @@ export default {
 
     const wantsJson = !/^Write a tailored cover letter/.test(input);
     try {
-      // "low" reasoning: the prompt already spells out a careful two-pass method, and it answers in well under a minute
+      // quick reasoning: "medium" took over 80s for a full review; the prompt's rules and the page's own checks keep the quality
       const ask = () => env.AI.run(MODEL, { input, reasoning: { effort: "low" }, max_output_tokens: 12000 });
       let text = textOf(await ask());
       // one redo if it came back empty or cut off

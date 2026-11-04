@@ -122,6 +122,9 @@ async function pdfText(blob) {
     ok("roles: target roles first (by fit), fallback last, empty dropped", rt.join("|") === "Junior AI Engineer|Machine Learning Engineer|Bogus Role|Full Stack DeveloperFallback", rt.join("|"));
     ok("roles: unknown fit shown as stretch", rs && /stretch fit/.test(rs.querySelectorAll(".item")[2].textContent), rs && rs.textContent);
     ok("best card says it's for your goal", $("rp-review").querySelector(".fact.best .k").textContent === "Best fit for your goal");
+    // style nits never lead the plan
+    const ps = planSteps({ red_flags: [{ issue: "Inconsistent bullet punctuation – some end with periods" }, { issue: "Contact line uses pipes (|)" }, { issue: "Misspelled \"Pyhton\" (should be \"Python\")" }], missing: [{ item: "Numbers" }] });
+    ok("plan: real typo first, style points last as quick checks", ps[0].title.startsWith("Misspelled") && ps[0].pill[0] === "Fix first" && ps.at(-1).pill[0] === "Quick check" && ps.at(-2).pill[0] === "Quick check" && ps[1].title === "Numbers", ps.map(x => x.pill[0] + ":" + x.title.slice(0, 20)).join(" | "));
     // long plans show the top 5, the rest behind a button
     const big = renderReview({ ...REVIEW, rubric: REVIEW.rubric, missing: Array.from({ length: 9 }, (_, i) => ({ item: "Gap " + i, why: "w", fix: "f" })), roles: [] });
     const box = h("div", {}, ...big.tabs[0].body.filter(Boolean)); document.body.append(box);

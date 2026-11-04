@@ -1250,7 +1250,7 @@ const RUBRIC = [
 ];
 // The review is asked for in two halves that run at the same time ("core": score and plan; "more": checks, roles, interview prep).
 // Each half writes about half as much, and writing is what takes the time, so the whole review arrives in roughly half the wait.
-const REVIEW_PROMPT = (resume, target, r = R(), part = "all") => `You are the hiring manager for this role, working with a senior recruiter who has screened thousands of ${r.doc === "resume" ? "resumes" : "CVs"} in ${r.name}. The candidate is applying for jobs in ${r.name}. Review this resume the way they really do, in two passes, and be honest. Quote actual lines from the resume. No generic advice. Never invent facts about the candidate.
+const REVIEW_PROMPT = (resume, target, r = R(), part = "all") => `You are the hiring manager for this role, working with a senior recruiter who has screened thousands of ${r.doc === "resume" ? "resumes" : "CVs"} in ${r.name}. The candidate is applying for jobs in ${r.name}. Today's date is ${today(REGIONS.us)}: judge every date on the resume against it (a job that ended last month is recent, not in the future). Review this resume the way they really do, in two passes, and be honest. Quote actual lines from the resume. No generic advice. Never invent facts about the candidate.
 ${target ? "\nThe candidate says they are aiming for: <target>" + target + "</target>\nJudge the resume for those roles, not for their past roles: relevance, the 7-second skim and the plan should all ask \"does this read as that role?\". Be honest about the gap; never pretend they already qualify.\n" : "\nNo target role was given. Treat the role the resume's own headline and summary say they want as the target, and judge it for that role.\n"}
 <resume>
 ${resume}
@@ -1285,7 +1285,7 @@ ${part !== "more" ? `  "rubric": [{"key": "relevance" | "impact" | "progression"
   "top_strength": {"title": "the single strongest selling point, short", "why": "why the hiring manager would care, citing the resume"},
   "strengths": [{"title": "...", "evidence": "line or detail from the resume"}],
   "missing": [{"item": "what's absent", "why": "why the recruiter or hiring manager notices it", "fix": "concrete fix"}],
-  "red_flags": [{"issue": "...", "fix": "..."}],
+  "red_flags": [{"issue": "a real problem a hiring manager would hold against the candidate: a misspelled word (quote the wrong spelling and the right one, which must differ), dates that contradict each other, a claim the rest of the resume doesn't support. Never style preferences such as punctuation, hyphenation, capitalisation or separators", "fix": "..."}],
   "rewrites": [{"before": "a weak bullet copied word for word from the resume", "after": "rewritten as action verb + what + result, in ${r.spelling.split(" (")[0]} spelling, ATS-plain (no symbols beyond a bullet); never add a number that isn't on the resume and never use placeholders like [X]"}]` : ""}${part === "all" ? ",\n" : ""}${part !== "core" ? `  "ats": [{"check": "e.g. standard section headings, contact info in the body, job keywords, date format, acronyms spelled out, layout", "status": "pass" | "warn" | "fail", "note": "..."}],
   "canada": [{"check": "${r.name} standards, e.g. personal details, length, contact block, date and location format, references, spelling", "status": "pass" | "warn" | "fail", "note": "..."}],
   "pitch": "a 30-second answer to \"Tell me about yourself\" for the target role, in first person, using only facts from the resume (3-4 sentences)",
@@ -1294,7 +1294,7 @@ ${part !== "more" ? `  "rubric": [{"key": "relevance" | "impact" | "progression"
   "roles": [{"title": "a job title exactly as job postings in ${r.name} write it", "fit": "strong" | "good" | "stretch", "in_target": true or false, "why": "the resume evidence that qualifies them, quoted or cited", "gap": "what they'd need to show or fix to land this one, or empty", "search": "2-4 words to type into a job board for this role"}]` : ""}
 }
 ${part !== "more" ? `Include all 6 rubric parts. Score bands: 75-100 = "Advance to screen", 55-74 = "Maybe pile", 0-54 = "Pass". The verdict must match the score band.
-Give 3-4 strengths, 3-5 missing items, 0-3 red flags (typos go here, quoted) and 2-3 rewrites.
+Give 3-4 strengths, 3-5 missing items, 0-3 red flags and 2-3 rewrites. Most resumes have no red flags; return [] rather than inventing one. Separators such as | or • in a contact line, and full stops at the end of bullets, are fine for applicant tracking systems: don't flag them.
 ` : ""}${part !== "core" ? `Give 4-5 ATS checks, 3-5 checks against the ${r.name} standards, 3-4 interview questions, 0-3 things to explain and 4-6 roles.
 Interview questions must come from this resume, not a generic list: e.g. a project they'll be asked to walk through, a skill listed without a job behind it, a date that raises a question, or the gap between their experience and the target role. Include the questions a recruiter in ${r.name} routinely asks when the resume makes them relevant (for example work eligibility${r.work ? " (" + r.work + ")" : ""}, notice period or relocation).
 
@@ -1302,7 +1302,7 @@ Roles: list the jobs this person should apply to now, the way a recruiter matche
 - Start with roles inside or right next to the target (in_target: true), best fit first. Rate each one honestly: if the dated experience for it is short, it is "good" or "stretch", not "strong", and "gap" says exactly what's missing.
 - After those, add at most 2 fallback roles outside the target (in_target: false) only if the resume clearly supports them, e.g. a past career. Never list a fallback first.
 - Judge seniority only from dated experience: count the months in each relevant dated job; projects and education show skill but do not add years. Under 2 years of relevant work means entry-level, junior or new-grad titles; never suggest senior, lead, staff, principal or manager titles unless the dates show the years for it.
-- "strong" = the resume already meets the usual must-haves for this title; "good" = meets most, with one gap; "stretch" = worth applying but a clear gap.
+- "strong" = the resume already meets the usual must-haves for this title, including the years of dated experience it normally asks for; "good" = meets most, with one gap; "stretch" = worth applying but a clear gap. Under 12 months of dated work in the role's field is never "strong" for that role.
 - Target-adjacent roles count as in_target: true (for an AI engineer target: ML engineer, LLM or GenAI developer, AI solutions or applied AI roles, AI-focused software developer, AI support or implementation roles). Use the titles employers in ${r.name} post (for example on ${r.boards.map(b => b[0]).join(", ")}), not invented ones.
 - Each "why" must point to real lines in the resume. If the resume can't support a role, leave it out.
 ` : ""}Keep every note, why and fix to one short sentence: the candidate reads this on a phone.
@@ -1315,7 +1315,7 @@ ${ATS}
 Every strength, quote and "before" bullet must come from the resume text above. If the resume doesn't show something, say it's missing rather than assuming it.
 Before you answer, check your own work: is every claim backed by the resume text, does each rubric score match its note, and would a real hiring manager agree with the total?`;
 
-const MATCH_PROMPT = (resume, jd, r = R()) => `You are an expert technical recruiter doing a fit analysis, like a paid job-match tool but more honest. Compare this resume against this job description the way the hiring manager for this job would. Be specific and evidence-based: cite resume lines for every "met" and "partial". Don't invent experience the candidate doesn't show. Be honest: don't inflate the score to encourage, and don't mark a requirement missing if the resume shows it. Weigh must-haves far more than nice-to-haves; years-of-experience requirements count only from dated experience on the resume.
+const MATCH_PROMPT = (resume, jd, r = R()) => `You are an expert technical recruiter doing a fit analysis, like a paid job-match tool but more honest. Today's date is ${today(REGIONS.us)}. Compare this resume against this job description the way the hiring manager for this job would. Be specific and evidence-based: cite resume lines for every "met" and "partial". Don't invent experience the candidate doesn't show. Be honest: don't inflate the score to encourage, and don't mark a requirement missing if the resume shows it. Weigh must-haves far more than nice-to-haves; years-of-experience requirements count only from dated experience on the resume.
 
 <job>
 ${jd}
@@ -1494,14 +1494,18 @@ function copyBtn(text) {
 // Sam's notes as an ordered to-do list: credibility problems first, then hard fails, then the big gaps, then the rewrites, then small checks
 function planSteps(d) {
   const checks = [...arr(d.ats), ...arr(d.canada)], st = (x) => str(x.status).toLowerCase();
+  // punctuation, hyphens and separators are polish, not reasons to reject someone: they go last as quick checks
+  const STYLE = /punctuat|hyphen|full stop|period|capitali[sz]|delimiter|separator|pipe|\|\s*\)|bullet (style|symbol)|spacing|font/i;
+  const flags = arr(d.red_flags).filter(x => str(x.issue)), real = flags.filter(x => !STYLE.test(str(x.issue))), style = flags.filter(x => STYLE.test(str(x.issue)));
   return [
-    ...arr(d.red_flags).map(x => ({ title: str(x.issue), fix: str(x.fix), pill: ["Fix first", "bad"] })),
+    ...real.map(x => ({ title: str(x.issue), fix: str(x.fix), pill: ["Fix first", "bad"] })),
     ...checks.filter(x => st(x) === "fail").map(x => ({ title: str(x.check), why: str(x.note), pill: ["Must fix", "bad"] })),
     ...arr(d.missing).map(x => ({ title: str(x.item), why: str(x.why), fix: str(x.fix), pill: ["Big impact", "acc"] })),
     arr(d.rewrites).length ? { title: `Swap in ${arr(d.rewrites).length === 1 ? "this rewritten bullet" : `these ${arr(d.rewrites).length} rewritten bullets`}`,
       why: "Sam rewrote your weakest lines using only what's already on your resume.", pill: ["Ready to copy", "good"],
       rewrites: arr(d.rewrites) } : null,
     ...checks.filter(x => st(x) === "warn").map(x => ({ title: str(x.check), why: str(x.note), pill: ["Quick check", "warn"] })),
+    ...style.map(x => ({ title: str(x.issue), fix: str(x.fix), pill: ["Quick check", "warn"] })),
   ].filter(x => x && x.title);
 }
 function planStep(x, open) {
@@ -1543,7 +1547,7 @@ function applyBox(steps) {
   go.onclick = () => applyFixes(picks.filter(p => p.cb.checked).map(p => fixText(p.x)));
   return h("div", { class: "fx" },
     h("div", { class: "fx-top" }, h("div", {}, h("b", {}, "Let Sam make these changes"),
-      h("span", {}, "Sam rewrites your resume with the fixes you pick, using only facts already on it, then rescans it and gives you a PDF. He never makes up numbers: where only you know one, you'll see [X] to fill in.")), open),
+      h("span", {}, "Sam rewrites your resume with the fixes you pick, using only facts already on it, then rescans it and gives you a PDF. Nothing is made up.")), open),
     list);
 }
 function appliedCard(a) {
