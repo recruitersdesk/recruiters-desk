@@ -2,6 +2,7 @@
   const T = [], ok = (n, c, i) => T.push({ name: n, pass: !!c, info: c ? undefined : String(i) }), wait = (ms) => new Promise(r => setTimeout(r, ms));
   try {
     await wait(300);
+    ok("on the public site the FAQ shows", !$("faq").hidden);
     resumeEl.value = "Priya Sharma\nToronto, ON\n" + "Built a RAG search tool over 12,000 shipping documents and cut lookup time by 40% in 2024. ".repeat(6);
     await handleFile(new File([resumeEl.value], "resume.txt", { type: "text/plain" }), true); await wait(500);
     ok("upload: reviewed through the relay, no Puter window at all", __r.calls.length === 3 && __p.signIns.length === 0 && __p.chats.length === 0 && $("rp-review").querySelector(".ring .num")?.textContent.startsWith("84") && scene.dataset.state === "done", [__r.calls.length, __p.signIns.length, $("rp-review").textContent.slice(0, 120)].join(" | "));

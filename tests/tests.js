@@ -160,6 +160,8 @@ async function pdfText(blob) {
     const ag = { canada: [{ check: "Length", note: "2 pages is fine" }] }; regionChecks(ag, "Age: 34\nManager", REGIONS.ca);
     ok("'Age' is still flagged when Sam's notes mention 'pages' or 'manage'", ag.canada.some(x => x.note.includes("age") || x.note.includes("Age")), JSON.stringify(ag.canada));
     ok("PDF: accented letters keep their base letter; others are counted", pdfSafe("Łukasz Wiśniewski, Dvořák, Zoë") === "Lukasz Wisniewski, Dvorák, Zoë" && pdfLossy("你好 Jane") === 2, pdfSafe("Łukasz Wiśniewski, Dvořák, Zoë"));
+    ok("FAQ: questions in plain words, folded; hidden inside claude.ai where Claude runs it", $("faq") && $("faq").querySelectorAll("details").length >= 6 && ![...$("faq").querySelectorAll("details")].some(d => d.open) && $("faq").hidden === true);
+    ok("country guides are linked from every page with full addresses", [...document.querySelectorAll(".foot .guides a")].length === 10 && [...document.querySelectorAll(".foot .guides a")].every(a => a.href.startsWith("https://recruiters-desk.pages.dev/")));
     ok("lists from the model can't break the page with a null", arr([null, { a: 1 }, undefined]).length === 1);
     // style nits never lead the plan
     const ps = planSteps({ red_flags: [{ issue: "Inconsistent bullet punctuation – some end with periods" }, { issue: "Contact line uses pipes (|)" }, { issue: "Misspelled \"Pyhton\" (should be \"Python\")" }], missing: [{ item: "Numbers" }] });

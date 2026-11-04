@@ -51,6 +51,11 @@ body {
 .privacy { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
 .foot { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--muted); padding: 6px 2px 10px; }
 .foot a { color: var(--accent); }
+.foot .guides { flex-basis: 100%; }
+.faq { padding: 6px 24px 10px; }
+.faq h2 { font: 700 19px/1.3 var(--font-display); margin: 16px 2px 8px; }
+.faq .more:first-of-type { border-top: 0; }
+.faq p { margin: 0 2px 16px; color: var(--muted); font-size: 14.5px; line-height: 1.6; max-width: 80ch; }
 .privacy svg { width: 14px; height: 14px; color: var(--good); flex: none; }
 
 /* ---------- hero: photo + work panel ---------- */
@@ -659,9 +664,21 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       </div>
     </section>
   </div>
+  <section class="card faq" id="faq" aria-labelledby="faqTitle">
+    <h2 id="faqTitle">Questions people ask</h2>
+    <details class="more"><summary><span>Is it really free?</span></summary><p>Yes. There's no account, no card and no trial. Sam runs on Cloudflare Workers AI's free daily allowance. On busy days, when that's used up, he asks you to click Continue once and carries on with Puter, a free backup that gives you a guest account (no email or card).</p></details>
+    <details class="more"><summary><span>What does Sam check on my resume?</span></summary><p>He reads it the way a hiring manager does: first a 7-second skim of your titles, dates and education, then a careful read. You get a score out of 100 made of six parts (relevance, impact, progression, clarity, credibility and your country's standards), the fixes that matter most in order, the roles you fit now, certifications worth getting, ATS checks and the interview questions your resume is likely to raise.</p></details>
+    <details class="more"><summary><span>Will my resume pass an ATS (applicant tracking system)?</span></summary><p>No tool can promise that, because every company sets its system up differently. Sam checks the things that commonly trip these systems: standard section headings, contact details in the body rather than a header, clear dates and the keywords from the job post. The PDF he gives you is real text, not an image, so these systems can read every word.</p></details>
+    <details class="more"><summary><span>Is my resume stored anywhere?</span></summary><p>Only in your open browser tab, and closing the tab clears it. Your text is sent to the AI only when you click one of Sam's actions. This site's relay doesn't keep it, and Cloudflare says it doesn't use it to train AI models. Start over clears everything at once.</p></details>
+    <details class="more"><summary><span>Does Sam make things up?</span></summary><p>He's told not to, and the page checks it. A rewrite is refused if it drops your dates or email, any number that isn't on your resume is marked for you to fill in, and certifications only come from a list checked on each issuer's site. Sam is still an AI and can be wrong, so read every change before you send it.</p></details>
+    <details class="more"><summary><span>Which countries does it follow?</span></summary><p>Canada, the United States, the United Kingdom, Ireland, Australia, New Zealand, India, Germany, the UAE and Gulf states, and Singapore, plus a general international option. The country decides what to leave off, how long your resume should be, spelling, references and how your cover letter opens and closes. See the guides below.</p></details>
+    <details class="more"><summary><span>Can it write my cover letter?</span></summary><p>Yes. Add a job post and Sam writes a letter from what's really on your resume, in your country's business-letter format, and gives it to you as a PDF.</p></details>
+    <details class="more"><summary><span>Why does the score change a little between scans?</span></summary><p>The AI reads slightly differently each time, so the same resume can land a few points apart. Treat the score as a guide, and look at the plan: the fixes at the top are the ones that matter.</p></details>
+  </section>
   </main>
 
   <footer class="foot">
+    <span class="guides">Country guides: <a href="https://recruiters-desk.pages.dev/resume-review-canada/">Canada</a> · <a href="https://recruiters-desk.pages.dev/resume-review-united-states/">United States</a> · <a href="https://recruiters-desk.pages.dev/cv-check-uk/">UK</a> · <a href="https://recruiters-desk.pages.dev/cv-check-ireland/">Ireland</a> · <a href="https://recruiters-desk.pages.dev/resume-review-australia/">Australia</a> · <a href="https://recruiters-desk.pages.dev/cv-check-new-zealand/">New Zealand</a> · <a href="https://recruiters-desk.pages.dev/resume-review-india/">India</a> · <a href="https://recruiters-desk.pages.dev/cv-check-germany/">Germany</a> · <a href="https://recruiters-desk.pages.dev/cv-check-uae/">UAE &amp; Gulf</a> · <a href="https://recruiters-desk.pages.dev/resume-review-singapore/">Singapore</a></span>
     <span>Free and open source. No subscriptions, no ads.</span>
     <span id="footAi">The AI runs on free services (Cloudflare Workers AI, with <a href="https://puter.com" target="_blank" rel="noopener">Puter</a> as a backup), so nobody pays.</span>
     <span><a href="https://github.com/recruitersdesk/recruiters-desk" target="_blank" rel="noopener">Source on GitHub</a> · <a href="https://github.com/recruitersdesk/recruiters-desk/archive/refs/heads/main.zip" rel="noopener">Download this project</a> (free, MIT licence)</span>
@@ -934,7 +951,9 @@ $("region").addEventListener("change", () => { save(); refreshStale(); });
   jdEl.value = store.get("rd.jd") || "";
   targetEl.value = store.get("rd.target") || "";
   // notes saved before regions existed were written for Canada, so keep them on Canada; otherwise start from the time zone
-  $("region").value = REGIONS[store.get("rd.region")] ? store.get("rd.region") : store.get("rd.out") ? "ca" : guessRegion();
+  const asked = new URLSearchParams(location.search).get("region");
+  $("region").value = REGIONS[asked] ? asked : REGIONS[store.get("rd.region")] ? store.get("rd.region") : store.get("rd.out") ? "ca" : guessRegion();
+  if (REGIONS[asked]) store.set("rd.region", asked);
   try { fileLabel = JSON.parse(store.get("rd.file") || "null"); } catch { fileLabel = null; }
   refresh(); idleLine();
 })();
@@ -2385,7 +2404,7 @@ function saveOuts(tab) {
   say("Welcome back. Your notes from last time are below.");
 })();
 
-if (inClaude) $("footAi").hidden = true;
+if (inClaude) { $("footAi").hidden = true; $("faq").hidden = true; }
 // GitHub Pages lets browsers reuse a cached page for up to 10 minutes; if this copy is older than the live one, load the live one
 (async () => {
   const mine = document.querySelector('meta[name="build"]')?.content;

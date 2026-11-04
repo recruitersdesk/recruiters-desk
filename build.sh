@@ -29,5 +29,12 @@ BUILD=$(date -u +%Y%m%d%H%M%S)
 } > index.html
 printf '%s\n' "$BUILD" > version.txt
 # the sitemap tells search engines the page exists and when it last changed
-printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' "  <url><loc>https://recruiters-desk.pages.dev/</loc><lastmod>$(date -u +%Y-%m-%d)</lastmod></url>" '</urlset>' > sitemap.xml
+# one guide page per country, built from the same rules the tool uses
+node tools/country-pages.mjs
+DAY=$(date -u +%Y-%m-%d)
+{
+  printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+  for u in https://recruiters-desk.pages.dev/ $(cat guides/urls.txt); do printf '  <url><loc>%s</loc><lastmod>%s</lastmod></url>\n' "$u" "$DAY"; done
+  printf '%s\n' '</urlset>'
+} > sitemap.xml
 echo "built index.html ($BUILD)"
