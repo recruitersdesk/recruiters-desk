@@ -37,6 +37,8 @@ function hasJson(text) {
   }
   return false;
 }
+// the model sometimes leaks its internal reasoning format instead of an answer; never pass that on
+const LEAK = /<\|(start|end|channel|message|return)\|>|^\s*analysis\s*:/i;
 // pull the answer text out of whichever response shape the model returns
 function textOf(r) {
   if (!r) return "";
@@ -64,11 +66,14 @@ export default {
 
     const wantsJson = !/^Write a tailored cover letter/.test(input);
     try {
-      // quick reasoning: "medium" took over 80s for a full review; the prompt's rules and the page's own checks keep the quality
-      const ask = () => env.AI.run(MODEL, { input, reasoning: { effort: "low" }, max_output_tokens: 12000 });
+      // quick reasoning for the review halves ("medium" took over 80s); careful for letters, which are short and must not embellish
+      const effort = wantsJson ? "low" : "medium";
+      const ask = () => env.AI.run(MODEL, { input, reasoning: { effort }, max_output_tokens: 12000 });
+      const bad = (t) => !t.trim() || LEAK.test(t) || (wantsJson && !hasJson(t));
       let text = textOf(await ask());
-      // one redo if it came back empty or cut off
-      if (!text.trim() || (wantsJson && !hasJson(text))) text = textOf(await ask());
+      // up to two redos if it came back empty, cut off, or with leaked reasoning
+      for (let i = 0; i < 2 && bad(text); i++) text = textOf(await ask());
+      if (bad(text)) return reply({ error: "upstream" }, 502, origin);
       if (!text.trim()) return reply({ error: "empty" }, 502, origin);
       return reply({ text }, 200, origin);
     } catch (e) {

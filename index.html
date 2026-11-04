@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="20261104143707">
+<meta name="build" content="20261104150005">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Free AI recruiter: an honest hiring-manager review of your resume, a job-fit check and a tailored cover letter, for the country you are applying in.">
 <meta property="og:title" content="Recruiter's Desk">
@@ -648,6 +648,7 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
             <div class="plan-head"><h3>Before you send it</h3><p>A recruiter notices each of these.</p></div>
             <ol class="sendlist">
               <li id="sendBrackets"></li>
+              <li id="sendClaims" hidden></li>
               <li><span><b>Find the hiring manager's name.</b> Check the job post, the company's LinkedIn page or its team page. "Dear Hiring Manager," is fine if you can't find it.</span></li>
               <li><span><b>Read it out loud once.</b> Change any line that doesn't sound like you. Recruiters spot letters that read as generic.</span></li>
               <li><span><b>Match your resume.</b> Use the same name, phone and email at the top, and send it as a PDF named like <i>Firstname-Lastname-Cover-Letter</i>.</span></li>
@@ -1369,14 +1370,14 @@ const LETTER_PROMPT = (resume, jd, toneKey, lenKey, r = R()) => `Write a tailore
 Layout, as plain text lines, in this order:
 1. The candidate's full name, then one line with their ${r.place}, phone and email, taken from the resume. Use [Phone], [Email] or [Location] for anything the resume doesn't give.
 2. A blank line, then the date: ${today(r)}
-3. A blank line, then the employer block: the hiring contact's name and title if the job post names them, then the company name, then the company's location if the post gives it. Use [Company name] if the post doesn't name the company.
+3. A blank line, then the employer block: the hiring contact's name and title if the job post names them, then the company name, then the company's location if the post gives it. The company name is usually in the post's first line or title (e.g. "Junior AI Engineer - Helix Data"); use [Company name] only if the post truly doesn't name it.
 4. A blank line, then a subject line: "${r.letter.subject ? "Re: " : ""}Application for <exact job title from the post>", adding the job or reference number if the post gives one.
 5. A blank line, then the salutation: ${r.letter.open}.
 6. The body paragraphs, separated by blank lines.
 7. The closing: ${r.letter.close}, then the candidate's full name on the next line.
 
 Rules:
-- Use ONLY facts from the resume. Never invent employers, numbers, skills or achievements.
+- Use ONLY facts from the resume. Never invent employers, numbers, skills or achievements. Every claim must trace to a specific line of the resume: no frequency words ("daily", "routinely"), soft skills or activities (presenting, mentoring, cross-functional work) unless the resume says them, and a skill that only appears in a skills list is "experience with", not daily use.
 - Open with a specific hook connecting the candidate's strongest relevant experience to what this role needs. Never open with "I am writing to", "I'm excited to apply" or similar.
 - Pick the 2-3 resume achievements most relevant to the job's top requirements and connect each to a requirement, reusing the job's own language naturally.
 - If there's an obvious gap, don't apologize for it; show adjacent evidence instead.
@@ -1951,7 +1952,12 @@ function sendCheck() {
   li.className = n ? "" : "ok";
   li.replaceChildren(h("span", {}, n ? h("b", {}, `Fill in ${n} ${n === 1 ? "blank" : "blanks"} in [brackets].`) : h("b", {}, "No [brackets] left to fill."),
     n ? " Use real details only, or delete the phrase." : " Every placeholder is filled in."));
+  // claim words the AI likes to add that aren't on the resume: the applicant should confirm or cut each one
+  const res = resumeEl.value.toLowerCase(), claims = [...new Set((t.match(CLAIMS) || []).map(x => x.toLowerCase()))].filter(w => !res.includes(w));
+  const cl = $("sendClaims"); cl.hidden = !claims.length;
+  if (claims.length) cl.replaceChildren(h("span", {}, h("b", {}, "Check these words are true for you: "), claims.map(w => `"${w}"`).join(", "), ". They're in the letter but not on your resume. Keep them only if they're accurate."));
 }
+const CLAIMS = /\b(daily|every day|routinely|regularly|stakeholders?|cross-functional|mentor(ed|ing)?|led a team|managed a team|presented|presenting|spearheaded|expert|expertise|proven|passionate|clear communication)\b/gi;
 $("letter").addEventListener("input", () => { sendCheck(); if (outs.letter != null) { outs.letter = $("letter").innerText; clearTimeout(sendCheck.t); sendCheck.t = setTimeout(() => saveOuts(), 500); } });
 async function runLetter(sample, resume, jd) {
   const box = $("letter"), state = $("letterState");
@@ -1961,7 +1967,7 @@ async function runLetter(sample, resume, jd) {
     await sample(LETTER_PROMPT(resume, jd, $("tone").value, $("length").value), {
       cache: false, signal: ctl.signal,
       onText: ({ text }) => { box.textContent = text; if (state.firstChild) { state.replaceChildren(); say("Writing it now. I'm only using what's actually on your resume."); } },
-    });
+    }).then(r => { if (/<\|(start|end|channel|message|return)\|>|^\s*analysis\s*:/i.test(r?.text || box.textContent)) { box.textContent = ""; throw { code: "invalid_json" }; } return r; });
     lastRun.letter = inputKey("letter"); outs.letter = box.textContent; saveOuts("letter"); refreshStale();
     mood("idle");
     say("Here's your letter. Read it once, fill in the [brackets], and make it sound like you.");

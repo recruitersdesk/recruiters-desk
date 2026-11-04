@@ -82,6 +82,8 @@ async function pdfText(blob) {
     ok("letter: before-you-send list counts brackets", !$("beforeSend").hidden && $("sendBrackets").textContent.startsWith("Fill in 1 blank"), $("sendBrackets").textContent);
     $("letter").textContent = "Dear Ms. Lee,\n\nSincerely,\nPriya"; $("letter").dispatchEvent(new Event("input"));
     ok("letter: bracket count updates as you edit", $("sendBrackets").classList.contains("ok"));
+    $("letter").textContent = "Dear Ms. Lee,\n\nMy daily work with Python and clear communication with stakeholders.\n\nSincerely,\nPriya"; $("letter").dispatchEvent(new Event("input"));
+    ok("letter: claims not on the resume are flagged to check", !$("sendClaims").hidden && /"daily"/.test($("sendClaims").textContent) && /"stakeholders"/.test($("sendClaims").textContent) && /"clear communication"/.test($("sendClaims").textContent), $("sendClaims").textContent);
     $("letter").textContent = L;
     ok("journey: all done after letter", [...$("journey").querySelectorAll("button")].every(b => b.dataset.state === "done"), [...$("journey").querySelectorAll("button")].map(b => b.dataset.state).join("|"));
     ok("letter: no REVIEWED stamp", scene.dataset.state === "idle");
