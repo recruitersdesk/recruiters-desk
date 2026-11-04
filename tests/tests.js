@@ -239,9 +239,13 @@ async function pdfText(blob) {
     ok("example loads", resumeEl.value.includes("ALEX RIVERA") && !$("exampleNote").hidden && $("padName").textContent.includes("example"));
     ok("example docx name", (fileLabel.name).replace(/\.[^.]+$/, "").replace(/\(example\)|\b(resume|cv)\b/gi, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") === "alex-rivera");
     // certifications: only checked ones, for the region, not already held, and only if the dates meet the issuer's rule
-    const cd = { roles: [{ months: 14 }], certs: [{ id: " AWS-AI-Practitioner ", why: "x" }, { id: "made-up" }, { id: "aws-ai-practitioner" }, { id: "cissp" }, { id: "cipd-level5" }, { id: "comptia-security-plus" }, { id: "psm-i" }, { id: "cka" }, { id: "capm" }] };
-    pickCerts(cd, "CERTIFICATIONS\nCompTIA Security+ (2024)", REGIONS.ca);
-    ok("certs: unknown, duplicate, wrong-region, already-held and not-yet-eligible are dropped; max 4", cd.certs.map(x => x.id).join("|") === "aws-ai-practitioner|psm-i|cka|capm", cd.certs.map(x => x.id).join("|"));
+    const cd = { roles: [{ months: 14 }], certs: [{ id: " AWS-AI-Practitioner ", why: "x" }, { id: "made-up" }, { id: "aws-ai-practitioner" }, { id: "cissp" }, { id: "cipd-level5" }, { id: "comptia-security-plus" }, { id: "comptia-a-plus" }, { id: "cphr-canada" }, { id: "psm-i" }, { id: "cka" }, { id: "capm" }, { id: "csm" }] };
+    pickCerts(cd, "CERTIFICATIONS\nCompTIA Security+ (2024)", REGIONS.ca, "Junior AI Engineer or project coordinator");
+    ok("certs: unknown, duplicate, wrong-region, already-held, off-field and not-yet-eligible are dropped; max 4", cd.certs.map(x => x.id).join("|") === "aws-ai-practitioner|psm-i|cka|capm", cd.certs.map(x => x.id).join("|"));
+    const ids = (r, t) => certsFor(REGIONS[r], t).map(c => c.id);
+    ok("certs: an HR target gets HR certifications, not project or cloud ones", ids("uk", "HR Advisor").includes("cipd-level5") && !ids("uk", "HR Advisor").some(x => /prince2|aws|azure/.test(x)), ids("uk", "HR Advisor").join());
+    ok("certs: an AI target gets AI, data and cloud, not HR or finance", ids("ca", "Junior AI Engineer").includes("aws-ai-practitioner") && ids("ca", "Junior AI Engineer").includes("pl-300") && !ids("ca", "Junior AI Engineer").some(x => /cphr|cpa|shrm/.test(x)), ids("ca", "Junior AI Engineer").length);
+    ok("certs: 'it' in a sentence isn't IT support; unknown fields get the whole list", !certFields("I made it work").has("it") && certFields("IT Support Analyst").has("it") && ids("ca", "Florist").length === certsFor(REGIONS.ca).length);
     ok("certs: catalog goes only in the 'more' half, filtered by region", REVIEW_PROMPT("r", "", REGIONS.uk, "more").includes("cipd-level5") && !REVIEW_PROMPT("r", "", REGIONS.ca, "more").includes("cipd-level5") && !REVIEW_PROMPT("r", "", REGIONS.ca, "core").includes("aws-ai-practitioner"));
     ok("certs: every entry has an official https link and a region", CERTS.length > 90 && CERTS.every(c => /^https:\/\//.test(c.url) && c.regions.length && c.name && c.why_demand && Number.isFinite(c.months)), CERTS.filter(c => !/^https:/.test(c.url)).map(c => c.id).join());
     // clearing
