@@ -1,0 +1,38 @@
+name: Something didn't work
+description: A button, an upload, a download or a page that didn't do what you expected.
+title: "Problem: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sorry about that. A few details help us fix it fast.
+        **This page is public. Please don't paste your resume or anything personal.**
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you clicked, and what you saw (an error message, nothing happening, a wrong file).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: What were you using?
+      options:
+        - Computer
+        - Phone
+        - Tablet
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Which browser? (optional)
+      placeholder: e.g. Chrome, Safari, Edge, Firefox

@@ -132,6 +132,8 @@ async function pdfText(blob) {
     ok("tabs: arrow keys move to the next tab; only the selected one is in the Tab order", t1 !== t0 && document.activeElement === t1 && t1.tabIndex === 0 && t0.tabIndex === -1 && $(t1.getAttribute("aria-controls")).getAttribute("aria-labelledby") === t1.id);
     t0.click();
     ok("a11y: text boxes are named, panels are labelled by their tab, page has a main landmark", $("resume").getAttribute("aria-label") && $("jd").getAttribute("aria-label") && $("rp-review").getAttribute("aria-labelledby") === "rt-review" && document.querySelector("main#main"));
+    const rep = rv.querySelector(".srail .report");
+    ok("feedback: the review links to the 'wrong advice' form with the country filled in and nothing personal", rep && rep.href.includes("template=wrong-advice.yml") && rep.href.includes("region=Canada") && !/resume=|name=|email=/.test(rep.href), rep && rep.href);
     ok("best card says it's for your goal", $("rp-review").querySelector(".fact.best .k").textContent === "Best fit for your goal");
     const ct = $("rp-review").querySelector('.subtab[data-key="certs"]');
     ok("certs: tab shows only real catalog entries", ct && ct.textContent.includes("Certifications") && ct.textContent.includes("1"), ct && ct.textContent);
@@ -162,6 +164,7 @@ async function pdfText(blob) {
     ok("PDF: accented letters keep their base letter; others are counted", pdfSafe("Łukasz Wiśniewski, Dvořák, Zoë") === "Lukasz Wisniewski, Dvorák, Zoë" && pdfLossy("你好 Jane") === 2, pdfSafe("Łukasz Wiśniewski, Dvořák, Zoë"));
     ok("FAQ: questions in plain words, folded; hidden inside claude.ai where Claude runs it", $("faq") && $("faq").querySelectorAll("details").length >= 6 && ![...$("faq").querySelectorAll("details")].some(d => d.open) && $("faq").hidden === true);
     ok("country guides are linked from every page with full addresses", [...document.querySelectorAll(".foot .guides a")].length === 10 && [...document.querySelectorAll(".foot .guides a")].every(a => a.href.startsWith("https://recruiters-desk.pages.dev/")));
+    ok("feedback: footer link to the public forms", [...document.querySelectorAll(".foot a")].some(a => a.href.endsWith("/issues/new/choose")));
     ok("lists from the model can't break the page with a null", arr([null, { a: 1 }, undefined]).length === 1);
     // style nits never lead the plan
     const ps = planSteps({ red_flags: [{ issue: "Inconsistent bullet punctuation – some end with periods" }, { issue: "Contact line uses pipes (|)" }, { issue: "Misspelled \"Pyhton\" (should be \"Python\")" }], missing: [{ item: "Numbers" }] });

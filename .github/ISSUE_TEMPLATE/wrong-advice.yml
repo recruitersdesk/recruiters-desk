@@ -1,0 +1,58 @@
+name: Sam's advice looks wrong
+description: A score, a fix, a country rule, a role or a certification that doesn't look right.
+title: "Wrong advice: "
+labels: ["accuracy"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Reports like this make Sam more accurate for everyone.
+        **This page is public. Please don't paste your resume, your name, email, phone or anything personal.**
+  - type: dropdown
+    id: region
+    attributes:
+      label: Which country were you applying in?
+      options:
+        - Canada
+        - United States
+        - United Kingdom
+        - Ireland
+        - Australia
+        - New Zealand
+        - India
+        - Germany
+        - UAE & Gulf
+        - Singapore
+        - Other / international
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part looked wrong?
+      options:
+        - The score
+        - A fix in my plan
+        - "A country rule (length, personal details, references, spelling)"
+        - Roles I can apply to
+        - Certifications
+        - Interview prep
+        - Job match
+        - Cover letter
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: said
+    attributes:
+      label: What did Sam say?
+      description: Copy the line or describe it. Leave out anything personal.
+    validations:
+      required: true
+  - type: textarea
+    id: right
+    attributes:
+      label: What would be right?
+      description: If you know a source (a government page, a recruiter guide), please add the link.
+    validations:
+      required: true
