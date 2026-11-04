@@ -141,6 +141,19 @@ async function pdfText(blob) {
     ok("match: half the must-haves caps the score near 60", matchScore({ match_score: 68, must_haves: mh(5, 10), role: { seniority: "Junior", candidate_level: "Junior" } }) === 60);
     ok("match: senior role for an early-career candidate is lower still (your Serotonin case)", matchScore({ match_score: 68, must_haves: mh(5, 10), role: { seniority: "Mid-level / senior individual contributor", candidate_level: "Early-career to mid-level" } }) === 52 && matchBand(52)[0] === "Stretch");
     ok("match: a strong honest score is left alone", matchScore({ match_score: 82, must_haves: mh(10, 10), role: { seniority: "Junior", candidate_level: "Junior" } }) === 82);
+    // code review fixes
+    ok("keywords: whole words only (Java isn't JavaScript, Excel isn't excellent)", !inResume("Java", "JavaScript, React") && !inResume("Excel", "excellent communicator") && inResume("Java", "Java, Spring") && inResume("Power BI", "PowerBI dashboards") && inResume("Node.js", "built with node.js") && inResume("C++", "C++ and Rust"));
+    let jt = null; try { extractJson('{"rubric":[{"key":"relevance","score":20},{"key":"impact","sc'); } catch (e) { jt = e.code; }
+    ok("a cut-off answer never becomes its first inner object", jt === "invalid_json");
+    const cr = checkRewrite("Analyst, Jan 2023 - Present\nGrew sales in 2020 by 15%\na@b.co", "Analyst, January 2023 - Present\nGrew sales in 2020 by 15% across 20 stores\na@b.co");
+    ok("rewrite: 'January 2023' keeps 'Jan 2023'; '20' isn't on the resume just because '2020' is", !cr.problems.length && cr.text.includes("across [X] stores") && cr.text.includes("15%"), JSON.stringify(cr));
+    const kr = { rewrites: [{ before: "Grew sales in 2020", after: "Grew sales 15% in 2020" }, { before: "Grew sales in 2020", after: "Grew sales by 40% in 2020" }, { before: "Grew sales in 2020", after: "Grew sales for [X] clients" }] };
+    keepRealRewrites(kr, "Grew sales in 2020 by 15%");
+    ok("suggested rewrites with a made-up number or a blank are dropped", kr.rewrites.length === 1 && kr.rewrites[0].after.includes("15%"), JSON.stringify(kr.rewrites));
+    const ag = { canada: [{ check: "Length", note: "2 pages is fine" }] }; regionChecks(ag, "Age: 34\nManager", REGIONS.ca);
+    ok("'Age' is still flagged when Sam's notes mention 'pages' or 'manage'", ag.canada.some(x => x.note.includes("age") || x.note.includes("Age")), JSON.stringify(ag.canada));
+    ok("PDF: accented letters keep their base letter; others are counted", pdfSafe("Łukasz Wiśniewski, Dvořák, Zoë") === "Lukasz Wisniewski, Dvorák, Zoë" && pdfLossy("你好 Jane") === 2, pdfSafe("Łukasz Wiśniewski, Dvořák, Zoë"));
+    ok("lists from the model can't break the page with a null", arr([null, { a: 1 }, undefined]).length === 1);
     // style nits never lead the plan
     const ps = planSteps({ red_flags: [{ issue: "Inconsistent bullet punctuation – some end with periods" }, { issue: "Contact line uses pipes (|)" }, { issue: "Misspelled \"Pyhton\" (should be \"Python\")" }], missing: [{ item: "Numbers" }] });
     ok("plan: real typo first, style points last as quick checks", ps[0].title.startsWith("Misspelled") && ps[0].pill[0] === "Fix first" && ps.at(-1).pill[0] === "Quick check" && ps.at(-2).pill[0] === "Quick check" && ps[1].title === "Numbers", ps.map(x => x.pill[0] + ":" + x.title.slice(0, 20)).join(" | "));

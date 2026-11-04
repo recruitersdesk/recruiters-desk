@@ -3,7 +3,7 @@ const REVIEW = { score: "60", rubric: [{ key: "relevance", score: 26, note: "Rec
   six_second_skim: "Eye lands on the RAG project and the 40% metric.", top_strength: { title: "Shipped RAG in production", why: "12,000 documents, measurable impact." },
   strengths: [{ title: "Metrics", evidence: "cutting lookup time by 40%" }, { title: "Cloud", evidence: "AWS Lambda" }, { title: "Breadth", evidence: "14 client websites" }],
   missing: [{ item: "Summary line", why: "No headline for the target role", fix: "Add a one-line summary" }],
-  red_flags: [], rewrites: [{ before: "Shipped 14 client websites", after: "Shipped 14 client websites with Next.js for [X] clients" }, { before: "Led a team of 40 engineers at Google", after: "invented" }],
+  red_flags: [], rewrites: [{ before: "Shipped 14 client websites", after: "Shipped 14 client websites with Next.js and TypeScript" }, { before: "Led a team of 40 engineers at Google", after: "invented" }, { before: "Shipped 14 client websites", after: "Shipped 14 client websites for [X] clients" }, { before: "Shipped 14 client websites", after: "Shipped 14 client websites, growing revenue 25%" }],
   ats: [{ check: "Standard headings", status: "pass", note: "EXPERIENCE, SKILLS, EDUCATION" }, { check: "Summary", status: "fail", note: "Missing" }, { check: "Dates", status: "warn", note: "OK" }],
   screen_questions: ["Walk me through the RAG tool."],
   certs: [{ id: "aws-ai-practitioner", why: "Backs up the RAG work with a known AI credential" }, { id: "fake-cert-9000", why: "made up" }],

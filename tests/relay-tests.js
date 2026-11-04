@@ -12,6 +12,9 @@
     // relay out of today's allowance: Puter takes over, once, for the rest of the visit
     window.__busy = true; const r0 = __r.calls.length;
     $("go-review").click(); await wait(600);
+    const cont = $("rp-review").querySelector(".errbox button");
+    ok("relay busy: Sam asks for one click instead of a blocked pop-up", cont && cont.textContent === "Continue" && __p.signIns.length === 0, $("rp-review").textContent.slice(0, 200));
+    cont && cont.click(); await wait(600);
     ok("relay busy: Puter takes over and the review still finishes", __p.chats.length === 2 && __p.signIns.length === 1 && $("rp-review").querySelector(".ring .num")?.textContent.startsWith("84") && !$("rp-review").querySelector(".errbox"), [__p.chats.length, __p.signIns.length, $("rp-review").textContent.slice(0, 160)].join(" | "));
     window.__busy = false;
     $("go-review").click(); await wait(500);
@@ -19,6 +22,7 @@
     // relay unreachable in a fresh visit: Puter too
     sessionStorage.removeItem("rd.ai"); window.__down = true; const c0 = __p.chats.length;
     $("go-review").click(); await wait(500);
+    $("rp-review").querySelector(".errbox button")?.click(); await wait(500);
     ok("relay unreachable: Puter takes over", __p.chats.length === c0 + 2 && $("rp-review").querySelector(".ring"));
     window.__down = false;
   } catch (e) { T.push({ name: "EXCEPTION", pass: false, info: String(e.stack || e) }); }

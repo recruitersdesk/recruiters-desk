@@ -23,4 +23,5 @@ print('$n: %d/%d passed' % (len(T)-len(bad), len(T)))
 for t in bad: print('  FAIL', t['name'], str(t.get('info') or '')[:300])
 sys.exit(1 if bad else 0)" || fail=1
 done
+node tests/relay-core.mjs || fail=1
 exit $fail

@@ -1,0 +1,11 @@
+# Cloudflare Pages: the site (built into site/ by deploy.sh) and its relay at /api/relay (functions/)
+name = "recruiters-desk"
+pages_build_output_dir = "site"
+compatibility_date = "2026-10-01"
+
+[ai]
+binding = "AI"
+
+[[kv_namespaces]]
+binding = "LIMITS"
+id = "478f42400c2643c69a465913aec36357"

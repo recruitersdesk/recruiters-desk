@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="20261104170004">
+<meta name="build" content="20261104173343">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Free AI recruiter: an honest hiring-manager review of your resume, a job-fit check and a tailored cover letter, for the country you are applying in.">
 <meta property="og:title" content="Recruiter's Desk">
@@ -671,7 +671,7 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   <footer class="foot">
     <span>Free and open source. No subscriptions, no ads.</span>
     <span id="footAi">The AI runs on free services (Cloudflare Workers AI, with <a href="https://puter.com" target="_blank" rel="noopener">Puter</a> as a backup), so nobody pays.</span>
-    <a href="https://github.com/meherzankturel/recruiters-desk" target="_blank" rel="noopener">Source on GitHub</a>
+    <span><a href="https://github.com/meherzankturel/recruiters-desk" target="_blank" rel="noopener">Source on GitHub</a> · <a href="https://github.com/meherzankturel/recruiters-desk/archive/refs/heads/main.zip" rel="noopener">Download this project</a> (free, MIT licence)</span>
   </footer>
 </div>
 <div class="dropzone" id="dropzone" hidden><div>Let go to hand your resume to Sam</div></div>
@@ -1107,7 +1107,7 @@ const puterSignedIn = () => { try { return !!window.puter?.auth?.isSignedIn(); }
 /* On the public site Sam reads through a small free relay first (Cloudflare Workers AI; source in relay/), so visitors see
    no sign-in at all. Only if the relay is busy for the day or unreachable does Puter take over: its one-time Continue window
    gives the visitor a free guest account that covers their own use. Neither path has a key in this page or costs the owner anything. */
-const RELAY_URL = window.RD_RELAY_URL ?? "https://recruiters-desk-relay.meherzankturel.workers.dev"; // tests point RD_RELAY_URL at a mock, or "" for Puter only
+const RELAY_URL = window.RD_RELAY_URL ?? "https://recruiters-desk.pages.dev/api/relay"; // tests point RD_RELAY_URL at a mock, or "" for Puter only
 const onPuter = () => !RELAY_URL || sessionStorage.getItem("rd.ai") === "puter";
 let lastPath = "";
 // opening Puter's window needs a real click, so when Puter is in use, buttons that call Sam start it straight from the click

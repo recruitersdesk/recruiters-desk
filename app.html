@@ -659,7 +659,7 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   <footer class="foot">
     <span>Free and open source. No subscriptions, no ads.</span>
     <span id="footAi">The AI runs on free services (Cloudflare Workers AI, with <a href="https://puter.com" target="_blank" rel="noopener">Puter</a> as a backup), so nobody pays.</span>
-    <a href="https://github.com/meherzankturel/recruiters-desk" target="_blank" rel="noopener">Source on GitHub</a>
+    <span><a href="https://github.com/meherzankturel/recruiters-desk" target="_blank" rel="noopener">Source on GitHub</a> · <a href="https://github.com/meherzankturel/recruiters-desk/archive/refs/heads/main.zip" rel="noopener">Download this project</a> (free, MIT licence)</span>
   </footer>
 </div>
 <div class="dropzone" id="dropzone" hidden><div>Let go to hand your resume to Sam</div></div>
@@ -922,8 +922,8 @@ function onEdit(src) {
 }
 resumeEl.addEventListener("input", () => onEdit("resume"));
 jdEl.addEventListener("input", () => onEdit("jd"));
-targetEl.addEventListener("input", () => { save(); if (typeof refreshStale === "function") refreshStale(); });
-$("region").addEventListener("change", () => { save(); if (typeof refreshStale === "function") refreshStale(); });
+targetEl.addEventListener("input", () => { save(); refreshStale(); });
+$("region").addEventListener("change", () => { save(); refreshStale(); });
 (function init() {
   resumeEl.value = store.get("rd.resume") || "";
   jdEl.value = store.get("rd.jd") || "";
@@ -1031,6 +1031,9 @@ async function handleFile(file, auto) {
     resumeEl.value = text;
     fileLabel = { name: file.name, ext: (file.name.split(".").pop() || "TXT").toUpperCase().slice(0, 4) };
     $("exampleNote").hidden = true;
+    // a different resume: the last one's applied fixes and its Undo copy no longer apply
+    pendingFix = null; store.set("rd.original", "");
+    if (outs.review?.pending) { delete outs.review.pending; saveOuts("review"); }
     save(); refresh(); mood("idle");
     // an upload is the request: start the review straight away instead of waiting for a click
     if (auto && hasResume()) { $("file").value = ""; $("file2").value = ""; return run("review"); }
@@ -1060,7 +1063,7 @@ function h(tag, attrs, ...kids) {
   for (const k of kids.flat()) if (k != null && k !== false) el.append(k instanceof Node ? k : String(k));
   return el;
 }
-const arr = (x) => Array.isArray(x) ? x : [];
+const arr = (x) => Array.isArray(x) ? x.filter(v => v != null) : [];
 const str = (x) => (x == null ? "" : String(x));
 const tone = (s) => s >= 75 ? "good" : s >= 55 ? "warn" : "bad";
 const clamp = (x) => Math.max(0, Math.min(100, Math.round(Number(x) || 0)));
@@ -1095,8 +1098,8 @@ const puterSignedIn = () => { try { return !!window.puter?.auth?.isSignedIn(); }
 /* On the public site Sam reads through a small free relay first (Cloudflare Workers AI; source in relay/), so visitors see
    no sign-in at all. Only if the relay is busy for the day or unreachable does Puter take over: its one-time Continue window
    gives the visitor a free guest account that covers their own use. Neither path has a key in this page or costs the owner anything. */
-const RELAY_URL = window.RD_RELAY_URL ?? "https://recruiters-desk-relay.meherzankturel.workers.dev"; // tests point RD_RELAY_URL at a mock, or "" for Puter only
-const onPuter = () => !RELAY_URL || sessionStorage.getItem("rd.ai") === "puter";
+const RELAY_URL = window.RD_RELAY_URL ?? "https://recruiters-desk.pages.dev/api/relay"; // tests point RD_RELAY_URL at a mock, or "" for Puter only
+const onPuter = () => !RELAY_URL || store.get("rd.ai") === "puter";
 let lastPath = "";
 // opening Puter's window needs a real click, so when Puter is in use, buttons that call Sam start it straight from the click
 function warmAuth() {
@@ -1137,16 +1140,19 @@ function puterError(e, signal) {
 }
 // pull the JSON object out of a model's answer, even with prose or code fences around it:
 // try each "{" in turn and take the first span that balances (ignoring braces inside strings) and parses
+// only a top-level object counts: if the answer was cut off, an object nested inside it is not the answer
 function extractJson(text) {
-  for (let start = text.indexOf("{"); start >= 0; start = text.indexOf("{", start + 1)) {
-    let depth = 0, inStr = false, esc = false;
-    for (let i = start; i < text.length; i++) {
+  for (let start = text.indexOf("{"); start >= 0;) {
+    let depth = 0, inStr = false, esc = false, end = -1;
+    for (let i = start; i < text.length && end < 0; i++) {
       const c = text[i];
       if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
       if (c === '"') inStr = true;
       else if (c === "{") depth++;
-      else if (c === "}" && --depth === 0) { try { return JSON.parse(text.slice(start, i + 1)); } catch { break; } }
+      else if (c === "}" && --depth === 0) end = i;
     }
+    if (end < 0) break;
+    try { return JSON.parse(text.slice(start, end + 1)); } catch { start = text.indexOf("{", end + 1); }
   }
   throw { code: "invalid_json" };
 }
@@ -1171,8 +1177,10 @@ function webSample() {
       catch (e) {
         // the relay has used today's free allowance, or can't be reached: Puter carries on for the rest of this visit
         if (!["backup_busy", "upstream_error"].includes(e?.code)) throw e;
-        sessionStorage.setItem("rd.ai", "puter");
-        say("My main free service is busy right now, so I'm switching to Puter. If a small Puter window appears, click Continue once and I'll carry on.");
+        store.set("rd.ai", "puter");
+        // Puter's window only opens from a click, so the first switch asks for one instead of being blocked as a pop-up
+        if (!puterSignedIn()) throw { code: "needs_click" };
+        say("My main free service is busy right now, so I'm carrying on with Puter, my free backup.");
       }
     }
     return viaPuter(input, opts);
@@ -1189,8 +1197,8 @@ const webDownloads = { save: async ({ filename, data }) => {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
   return { status: "saved" };
 } };
-const samplePromise = (async () => inClaude ? await window.claude.use("sample") : (RELAY_URL || await loadPuter()) ? webSample() : null)();
-const downloadsPromise = (async () => inClaude ? await window.claude.use("downloads") : webDownloads)();
+const samplePromise = (async () => inClaude ? await window.claude.use("sample") : (RELAY_URL || await loadPuter()) ? webSample() : null)().catch(() => null);
+const downloadsPromise = (async () => inClaude ? await window.claude.use("downloads") : webDownloads)().catch(() => null);
 const UNAVAILABLE = inClaude ? "I work through Claude, and I can't reach it here. Sign in at claude.ai and open this page there, then try again."
   : "I couldn't reach the free AI service. Check your connection (and allow js.puter.com if an ad blocker is on), then reload the page.";
 const ERR = {
@@ -1198,6 +1206,7 @@ const ERR = {
   sampling_disabled: "Claude isn't available on this account, so I can't run this.",
   rate_limited: "The AI is busy or you've hit a usage limit for now. Give it a little while and try again.",
   allowance: "You've used up this month's free AI allowance from Puter. It resets each month, or you can add more in your Puter account. This site never charges you.",
+  needs_click: "My main free service has reached today's limit. Click Continue and I'll carry on with Puter, my free backup: a small window opens once (no email or card), then I'll start.",
   popup_blocked: "Your browser blocked the small sign-in window that gives you a free guest account. Allow pop-ups for this site, then click Try again.",
   auth_closed: "The Puter window closed before it finished. Puter is the free service that runs me. Click Try again to open it.",
   verify: "Puter, the free service I'm using right now, asked for an extra check (a phone number). That's Puter's anti-spam rule, not this site's. Try again later.",
@@ -1548,10 +1557,13 @@ ${resume}
 
 /* ---------- accuracy checks run in code, so they don't depend on the model getting them right ---------- */
 const flat = (x) => str(x).toLowerCase().replace(/[^a-z0-9+#]+/g, "");
+// whole words only: "Java" isn't on a resume that only says "JavaScript", nor "Excel" in "excellent".
+// Spacing and punctuation inside a term may differ ("Power BI" / "PowerBI", "Node.js" / "NodeJS").
 function inResume(term, resume) {
-  const t = str(term).trim(); if (!t) return false;
-  if (flat(t).length <= 3) return new RegExp("(^|[^a-z0-9])" + t.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "($|[^a-z0-9])").test(resume.toLowerCase());
-  return flat(resume).includes(flat(t));
+  const t = str(term).trim().toLowerCase(); if (!flat(t)) return false;
+  const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const loose = t.split(/[^a-z0-9+#]+/).filter(Boolean).map(esc).join("[^a-z0-9+#]*");
+  return new RegExp("(^|[^a-z0-9+#])" + loose + "($|[^a-z0-9+#])").test(resume.toLowerCase());
 }
 // keywords go in the column that matches the resume text, whatever the model said
 function sortKeywords(d, resume) {
@@ -1566,7 +1578,7 @@ const FIT = { strong: 0, good: 1, stretch: 2 };
 function sortRoles(d) {
   d.roles = arr(d.roles).filter(r => str(r.title)).map(r => ({ ...r, fit: str(r.fit).toLowerCase() in FIT ? str(r.fit).toLowerCase() : "stretch" }))
     // "strong" needs at least a year of dated work in the field, whatever the model says
-    .map(r => r.fit === "strong" && Number.isFinite(Number(r.months)) && r.months !== "" && Number(r.months) < 12 ? { ...r, fit: "good" } : r)
+    .map(r => r.fit === "strong" && r.months != null && r.months !== "" && Number.isFinite(Number(r.months)) && Number(r.months) < 12 ? { ...r, fit: "good" } : r)
     .map(r => ({ ...r, in_target: r.in_target !== false && str(r.in_target).toLowerCase() !== "false" }))
     .sort((a, b) => (b.in_target - a.in_target) || (FIT[a.fit] - FIT[b.fit])).slice(0, 8);
 }
@@ -1593,7 +1605,10 @@ function pickCerts(d, resume, r, target) {
 }
 function keepRealRewrites(d, resume) {
   const have = new Set(words(resume));
-  d.rewrites = arr(d.rewrites).filter(x => { const w = words(x.before); return w.length && w.filter(v => have.has(v)).length / w.length >= 0.8; });
+  const nums = numsIn(resume);
+  d.rewrites = arr(d.rewrites).filter(x => { const w = words(x.before); return w.length && w.filter(v => have.has(v)).length / w.length >= 0.8; })
+    // and the rewrite can't add a number the resume doesn't have, or a blank to fill
+    .filter(x => !/\[[^\]\n]*\]/.test(str(x.after)) && [...numsIn(x.after)].every(n => nums.has(n)));
 }
 // personal details, found by pattern rather than by the model; how serious each one is depends on the region
 const PERSONAL = [
@@ -1609,7 +1624,7 @@ function regionChecks(d, resume, r) {
   const docs = r.doc.split(" ")[0], extra = [];
   for (const [key, re, label] of PERSONAL) {
     const level = r.personal[key];
-    if (!level || !re.test(resume) || said.includes(key === "birth" ? "birth" : key)) continue;
+    if (!level || !re.test(resume) || new RegExp("\\b" + key).test(said)) continue;
     extra.push({ check: "Personal details", status: level, note: level === "fail"
       ? `${label} is on your ${docs}. Employers in ${r.name} don't ask for it, and many screen out applications that include it. Remove it.`
       : `${label} is on your ${docs}. It's still seen in ${r.name}, but many employers now prefer it left off.` });
@@ -1673,7 +1688,7 @@ function copyBtn(text) {
 function planSteps(d) {
   const checks = [...arr(d.ats), ...arr(d.canada)], st = (x) => str(x.status).toLowerCase();
   // punctuation, hyphens and separators are polish, not reasons to reject someone: they go last as quick checks
-  const STYLE = /punctuat|hyphen|full stop|period|capitali[sz]|delimiter|separator|pipe|\|\s*\)|bullet (style|symbol)|spacing|font/i;
+  const STYLE = /punctuat|hyphen|full stop|trailing periods?|periods? at the end|capitali[sz]|delimiter|separator|\bpipes?\b|\|\s*\)|bullet (style|symbol)|spacing|font/i;
   const flags = arr(d.red_flags).filter(x => str(x.issue)), real = flags.filter(x => !STYLE.test(str(x.issue))), style = flags.filter(x => STYLE.test(str(x.issue)));
   return [
     ...real.map(x => ({ title: str(x.issue), fix: str(x.fix), pill: ["Fix first", "bad"] })),
@@ -1754,9 +1769,13 @@ function appliedCard(a) {
 }
 // code-level checks on Sam's rewrite: nothing dropped, nothing made up
 const DATE_RE = /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}\b|\b\d{1,2}\/\d{4}\b/gi;
+// numbers compared as whole numbers: "20" isn't on a resume just because "2020" is
+const numOf = (m) => m.replace(/[^\d.]/g, "").replace(/\.$/, "");
+const numsIn = (t) => new Set((str(t).match(/\d[\d,.]*/g) || []).map(numOf));
 function checkRewrite(oldText, newText) {
-  const norm = (x) => x.toLowerCase().replace(/\s+/g, " ");
-  const o = norm(oldText), n = norm(newText), problems = [], warnings = [];
+  // "January 2023" and "Jan 2023" are the same date
+  const norm = (x) => x.toLowerCase().replace(/\s+/g, " ").replace(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?/g, "$1");
+  const o = norm(oldText), n = norm(newText), problems = [], warnings = [], have = numsIn(oldText);
   const dates = [...new Set((oldText.match(DATE_RE) || []).map(norm))];
   const lost = dates.filter(dt => !n.includes(dt));
   const years = [...new Set(oldText.match(/\b(?:19|20)\d{2}\b/g) || [])].filter(y => !n.includes(y));
@@ -1768,9 +1787,8 @@ function checkRewrite(oldText, newText) {
   // any number that isn't on the original resume is treated as made up and turned into [X]
   let invented = 0;
   const fixed = newText.replace(/\$?\d[\d,.]*\s?(?:%|\+|k|K|M)?/g, (m) => {
-    const core = m.replace(/[\s$,]/g, "").replace(/\.$/, "");
-    if (!core || o.replace(/[\s$,]/g, "").includes(core.toLowerCase())) return m;
-    invented++; return "[X]";
+    if (have.has(numOf(m))) return m;
+    invented++; return /\s$/.test(m) ? "[X] " : "[X]";
   });
   if (invented) warnings.push(`Sam's rewrite had ${invented} ${invented === 1 ? "number" : "numbers"} that aren't on your resume, so they're now [X]. Put in the real figure or delete the phrase.`);
   if (nw > ow * 1.35) warnings.push(`It grew from ${ow} to ${nw} words. Check it still fits on 2 pages.`);
@@ -1779,10 +1797,11 @@ function checkRewrite(oldText, newText) {
 let pendingFix = null;
 async function applyFixes(fixes) {
   if (running || !fixes.length) return;
+  setRunning(true);
   const sample = await samplePromise;
-  if (!sample) { say(UNAVAILABLE); return; }
+  if (!sample) { setRunning(false); say(UNAVAILABLE); return; }
   const before = outs.review?.score ?? null, original = resumeEl.value;
-  setRunning(true); mood("reading", "Sam is applying the fixes…");
+  mood("reading", "Sam is applying the fixes…");
   say("I'm rewriting your resume with those fixes. I'll keep your facts exactly as they are. This takes a minute or two.");
   ctl = new AbortController();
   const panel = $("rp-review");
@@ -1790,7 +1809,7 @@ async function applyFixes(fixes) {
   let d;
   try {
     d = await sample.json(FIX_PROMPT(original.trim().slice(0, 30000), fixes, targetEl.value.trim().slice(0, 160)), { signal: ctl.signal, modelTier: await pickTier(sample),
-      onText: ({ text }) => { if (text && !panel.dataset.streaming) { panel.dataset.streaming = "1"; panel.querySelector(".loading .muted").textContent = "Sam is writing the new version…"; } } }) || {};
+      onText: ({ text }) => { if (text && !panel.dataset.streaming) { panel.dataset.streaming = "1"; const m = panel.querySelector(".loading .muted"); if (m) m.textContent = "Sam is writing the new version…"; } } }) || {};
     delete panel.dataset.streaming; failedOnce = false;
   } catch (e) {
     delete panel.dataset.streaming; setRunning(false); mood("idle");
@@ -1807,7 +1826,7 @@ async function applyFixes(fixes) {
     if (outs.review) paint("review", outs.review);
     return;
   }
-  if (store.get("rd.original") == null || !store.get("rd.original")) store.set("rd.original", JSON.stringify({ text: original, file: fileLabel }));
+  if (!store.get("rd.original")) store.set("rd.original", JSON.stringify({ text: original, file: fileLabel }));
   const base = str(fileLabel?.name || "Resume").replace(/\.[^.]+$/, "").replace(/ \(improved by Sam\)$/, "");
   resumeEl.value = c.text; fileLabel = { name: base + " (improved by Sam)", ext: "NEW" };
   save(); refresh();
@@ -1834,7 +1853,7 @@ async function downloadResume(auto) {
   if (!downloads) { if (!auto) say("Downloads don't work in this view. Open View or edit the text to copy your resume."); return false; }
   try {
     await downloads.save({ filename: resumeFileName(), data: await buildResumePdf(resumeEl.value) });
-    if (pdfLossy(resumeEl.value)) say("Saved. A few special characters (non-Latin letters or symbols) were replaced in the PDF. Check the file before you send it.");
+    if (pdfLossy(resumeEl.value)) say(lossNote(pdfLossy(resumeEl.value)));
     return true;
   } catch (e) { if (e?.code !== "declined") say("That download didn't work here. Open View or edit the text to copy your resume."); return false; }
 }
@@ -2089,7 +2108,7 @@ function loadingBlock(text) {
     h("span", { class: "progress-line" }, clock, stage), cancel);
 }
 function errorBlock(e, kind) {
-  const retry = h("button", { class: "btn-ghost", type: "button" }, "Try again");
+  const retry = h("button", { class: e?.code === "needs_click" ? "btn-primary" : "btn-ghost", type: "button" }, e?.code === "needs_click" ? "Continue" : "Try again");
   retry.onclick = () => run(kind);
   return h("div", { class: "errbox" }, h("span", {}, errMsg(e)), retry, h("span", { class: "hint" }, "Error code: " + str(e?.code || "unknown") + (lastPath && !inClaude ? ` (via ${lastPath})` : "")));
 }
@@ -2115,16 +2134,18 @@ const inputs = () => ({ resume: resumeEl.value.trim().slice(0, 30000), jd: hasJD
 
 async function run(kind) {
   if (running || !check(kind)) return;
+  setRunning(true);
   const sample = await samplePromise;
   showTab(kind);
-  if (!sample) { say(UNAVAILABLE); if (kind !== "letter") $("rp-" + kind).replaceChildren(h("div", { class: "errbox" }, h("span", {}, UNAVAILABLE))); else $("letterState").replaceChildren(h("div", { class: "errbox" }, h("span", {}, UNAVAILABLE))); return; }
-  setRunning(true); mood("reading", { review: "Sam is reading your resume…", match: "Sam is checking you against the job…", letter: "Sam is writing your cover letter…" }[kind]);
+  if (!sample) { setRunning(false); say(UNAVAILABLE); if (kind !== "letter") $("rp-" + kind).replaceChildren(h("div", { class: "errbox" }, h("span", {}, UNAVAILABLE))); else $("letterState").replaceChildren(h("div", { class: "errbox" }, h("span", {}, UNAVAILABLE))); return; }
+  mood("reading", { review: "Sam is reading your resume…", match: "Sam is checking you against the job…", letter: "Sam is writing your cover letter…" }[kind]);
   // the first time on the public site, Puter asks once before it creates the free guest account
   if (!inClaude && onPuter() && !puterSignedIn()) say("First time here? Click Continue in the small Puter window. It gives you a free guest account, no email or card, and then I'll start reading.");
   else say("", true);
   ctl = new AbortController();
   $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
-  const { resume, jd } = inputs();
+  // what this run is based on, taken now: an edit made while Sam works must still show the notes as out of date
+  const { resume, jd } = inputs(), key = inputKey(kind), reg = R(), regionId = $("region").value;
   try {
     if (kind === "letter") return await runLetter(sample, resume, jd);
     const panel = $("rp-" + kind);
@@ -2135,13 +2156,16 @@ async function run(kind) {
     const target = targetEl.value.trim().slice(0, 160);
     // the review's two halves run side by side; the score and plan come from "core", the rest from "more"
     const d = kind === "review"
-      ? Object.assign({}, ...(await Promise.all(["more", "core"].map(part => sample.json(REVIEW_PROMPT(resume, target, R(), part), opts)))).map(x => x || {}))
+      ? Object.assign({}, ...(await Promise.all(["more", "core"].map(part => sample.json(REVIEW_PROMPT(resume, target, reg, part), opts)))).map(x => x || {}))
       : (await sample.json(MATCH_PROMPT(resume, jd), opts)) || {};
-    delete panel.dataset.streaming; failedOnce = false;
-    if (kind === "review") { d.region = $("region").value; keepRealRewrites(d, resume); regionChecks(d, resume, R()); sortRoles(d); pickCerts(d, resume, R(), target); const fix = pendingFix || outs.review?.pending; if (fix) { d.applied = fix; pendingFix = null; } } else sortKeywords(d, resume);
+    delete panel.dataset.streaming;
+    // an answer without the parts that matter (for example one cut off half way) is a failed run, not a review
+    if (kind === "review" ? !arr(d.rubric).length && d.score == null : d.match_score == null && !arr(d.must_haves).length) throw { code: "invalid_json" };
+    failedOnce = false;
+    if (kind === "review") { d.region = regionId; keepRealRewrites(d, resume); regionChecks(d, resume, reg); sortRoles(d); pickCerts(d, resume, reg, target); const fix = pendingFix || outs.review?.pending; if (fix) { d.applied = fix; pendingFix = null; } } else sortKeywords(d, resume);
     paint(kind, d); outs[kind] = d;
     mood("done");
-    lastRun[kind] = inputKey(kind); saveOuts(kind); refreshStale();
+    lastRun[kind] = key; saveOuts(kind); refreshStale();
     if (kind === "review" && d.applied) {
       const left = blanksIn(resumeEl.value).length;
       say(`Rescanned. ${d.applied.before != null ? `${d.applied.before} → ${d.score}/100` : `${d.score}/100`}, ${reviewBand(clamp(d.score))[0]}.${left ? ` Fill in the ${left} blanks below, then download your PDF.` : " Your new resume is downloading as a PDF."}`);
@@ -2150,6 +2174,8 @@ async function run(kind) {
     else if (kind === "review") say(`Done. ${d.score}/100, so my verdict is ${reviewBand(clamp(d.score))[0]}. Your strongest point is "${str(d.top_strength?.title) || "in my notes"}".${d.roles.length ? ` Best-fit role: ${str(d.roles[0].title)}.` : ""} Your plan is below.`);
     else say(`You're a ${matchScore(d)}% match: ${matchBand(matchScore(d))[0]}. Your plan for this job is below.`);
   } catch (e) {
+    // if one half of the review failed, stop the other instead of letting it use up the free allowance
+    ctl.abort();
     mood("idle");
     if (kind !== "letter") delete $("rp-" + kind).dataset.streaming;
     if (e?.code !== "cancelled") failedOnce = true;
@@ -2215,11 +2241,14 @@ $("copyLetter").onclick = async () => {
 function pdfPlain(t) {
   return t.replace(/\r/g, "").replace(/\t/g, " ").replace(/[‐‑‒–—−]/g, "-").replace(/[‘’′]/g, "'").replace(/[“”″]/g, '"')
     .replace(/…/g, "...").replace(/[→➔➤]/g, "->").replace(/[   ]/g, " ").replace(/€/g, "EUR ")
-    .replace(/[•●▪‣⁃]\s*/g, "- ");
+    .replace(/[•●▪‣⁃]\s*/g, "- ")
+    // letters with accents the fonts lack (Ł, š, č, ő) keep their base letter rather than becoming "?"
+    .normalize("NFC").replace(/[^\n\x20-\xFF]/g, (c) => ({ "Ł": "L", "ł": "l", "Đ": "D", "đ": "d", "ı": "i", "Ő": "Ö", "ő": "ö", "Ű": "Ü", "ű": "ü" })[c] || c.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
 }
 const pdfSafe = (t) => pdfPlain(t).replace(/[^\n\x20-\xFF]/g, "?");
-// true when something had no plain equivalent (e.g. non-Latin letters) and became "?"
-const pdfLossy = (t) => /[^\n\x20-\xFF]/.test(pdfPlain(t));
+// how many characters had no plain equivalent (e.g. non-Latin letters) and became "?"
+const pdfLossy = (t) => (pdfPlain(t).match(/[^\n\x20-\xFF]/g) || []).length;
+const lossNote = (n) => `Saved. ${n} ${n === 1 ? "character" : "characters"} (non-Latin letters or symbols) couldn't be shown and became "?" in the PDF. Check the file before you send it.`;
 function newPdf() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: R().paper === "letter" ? "letter" : "a4" });
@@ -2236,9 +2265,12 @@ async function buildResumePdf(text) {
     y += gap;
   };
   const isHead = (t) => t.length > 1 && t.length < 48 && ((t === t.toUpperCase() && /[A-Z]/.test(t)) || /:$/.test(t)) && !/^[-•*]/.test(t);
-  pdfSafe(text).replace(/\r/g, "").split("\n").forEach((raw, i) => {
+  // the first line with text is the name and the next is the contact line, whatever blank lines come before them
+  let seen = 0;
+  pdfSafe(text).replace(/\r/g, "").split("\n").forEach((raw) => {
     const t = raw.trim();
-    if (!t) { y += 4; return; }
+    if (!t) { if (seen) y += 4; return; }
+    const i = seen++;
     if (i === 0) return write(t, { size: 18, bold: true, gap: 2 });
     if (i === 1) return write(t, { size: 9.5, color: 80, gap: 8 });
     if (isHead(t)) {
@@ -2281,7 +2313,7 @@ $("dlLetter").onclick = async () => {
     const b = fileBase();
     await downloads.save({ filename: (b ? b + "-" : "") + "Cover-Letter.pdf", data: await buildLetterPdf(text) });
     btn.textContent = "Saved"; setTimeout(() => btn.textContent = "Download PDF", 2000);
-    if (pdfLossy(text)) say("Saved. A few special characters (non-Latin letters or symbols) were replaced in the PDF. Check the file before you send it.");
+    if (pdfLossy(text)) say(lossNote(pdfLossy(text)));
   } catch (e) {
     if (e?.code !== "declined") say("That download didn't work here. Use Copy and paste it into a document.");
   }
