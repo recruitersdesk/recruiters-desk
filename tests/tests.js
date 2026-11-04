@@ -148,18 +148,22 @@ async function pdfText(blob) {
       ok("apply: sends only ticked fixes + no-invention rule", fixCall?.input.includes("senior resume writer for jobs in") && !fixCall.input.includes("1. Summary. Missing") && fixCall.input.includes("Never invent anything"), fixCall?.input.slice(0, 200));
       ok("apply: resume replaced, made-up number turned into [X]", resumeEl.value.includes("Cut processing costs by [X] using batching") && !resumeEl.value.includes("37%"), resumeEl.value.slice(-120));
       ok("apply: no PDF while a blank is left", !__saved);
-      ok("apply: rescanned automatically", __calls.length === n0 + 2 && __calls.at(-1).input.includes("PASS 1, the 7-second skim") && __calls.at(-1).input.includes("Cut processing costs by [X]"));
-      const ap = $("rp-review").querySelector(".applied");
-      ok("apply: result card shows score + to-fill + warning", ap && /score 84 → 84/.test(ap.textContent) && ap.textContent.includes("Fill in 1 detail") && ap.textContent.includes("aren't on your resume"), ap && ap.textContent.slice(0, 300));
-      ok("apply: Sam reports the rescan", $("say").textContent.startsWith("Rescanned. 84 → 84/100") && $("say").textContent.includes("Fill in the 1 blanks"), $("say").textContent);
+      ok("apply: with a blank left, no rescan yet (an unfinished resume would score low)", __calls.length === n0 + 1 && $("stale").hidden);
+      const pc = $("rp-review").querySelector(".applied.pending");
+      ok("apply: card asks for the detail first", pc && pc.textContent.includes("Fill in 1 detail") && pc.textContent.includes("aren't on your resume") && pc.querySelector(".blanks .btn-primary")?.textContent === "Fill in and rescan", pc && pc.textContent.slice(0, 300));
+      ok("apply: Sam explains the order", $("say").textContent.startsWith("I've made the changes. Fill in the 1 detail"), $("say").textContent);
       ok("apply: file renamed as improved", $("fileName").textContent.includes("(improved by Sam)"));
-      const bx = ap.querySelector(".blanks"), bgo = bx.querySelector(".btn-primary"), bin = bx.querySelector("input");
-      ok("blanks: one box per [X], download locked until filled", bx.querySelectorAll(".blank-row").length === 1 && bgo.disabled && bx.textContent.includes("Cut processing costs by [X]"));
+      const bx = pc.querySelector(".blanks"), bgo = bx.querySelector(".btn-primary"), bin = bx.querySelector("input");
+      ok("blanks: one box per [X], button locked until filled", bx.querySelectorAll(".blank-row").length === 1 && bgo.disabled && bx.textContent.includes("Cut processing costs by [X]"));
       bin.value = "18%"; bin.dispatchEvent(new Event("input"));
-      bgo.click(); await wait(800);
+      bgo.click(); await wait(900);
+      ok("rescan runs on the finished resume (both halves)", __calls.length === n0 + 3 && __calls.at(-1).input.includes("Cut processing costs by 18% using batching") && !__calls.at(-1).input.split("<resume>")[1].split("</resume>")[0].includes("[X]"), [__calls.length - n0, __calls.slice(n0).map(c => c.input.slice(0, 40)).join(" / ")].join(" :: "));
+      const ap = $("rp-review").querySelector(".applied");
+      ok("apply: result card shows the score change", ap && !ap.classList.contains("pending") && /score 84 → 84/.test(ap.textContent), ap && ap.textContent.slice(0, 200));
+      ok("apply: Sam reports the rescan", $("say").textContent.startsWith("Rescanned. 84 → 84/100") && $("say").textContent.includes("downloading as a PDF"), $("say").textContent);
+      await wait(400);
       const rt = __saved ? await pdfText(__saved.data) : "";
-      ok("blanks: filled in, resume PDF downloaded as text", resumeEl.value.includes("Cut processing costs by 18% using batching") && /Resume\.pdf$/.test(__saved?.filename || "") && rt.includes("Cut processing costs by 18% using batching") && !rt.includes("[X]"), (__saved?.filename || "") + " | " + rt.slice(-160));
-      ok("blanks: review not marked stale by filling them", $("stale").hidden, $("stale").textContent);
+      ok("PDF downloads by itself after the rescan, as real text", /Resume\.pdf$/.test(__saved?.filename || "") && rt.includes("Cut processing costs by 18% using batching") && !rt.includes("[X]"), (__saved?.filename || "") + " | " + rt.slice(-160));
       $("rp-review").querySelector(".applied .fx-top .btn-link").click(); await wait(20);
       ok("apply: undo restores the original", resumeEl.value === orig && !$("fileName").textContent.includes("improved"));
       // a rewrite that drops dates is refused and nothing changes
@@ -203,7 +207,7 @@ async function pdfText(blob) {
     // a real upload starts the review by itself
     const before = __calls.length;
     await handleFile(fileOf("resume.pdf", "application/pdf"), true); await wait(400);
-    ok("upload auto-starts the review", __calls.length === before + 1 && __calls.at(-1).kind === "json" && !$("rp-review").hidden && $("rp-review").querySelector(".ring") && scene.dataset.state === "done", [__calls.length - before, __calls.at(-1).kind, $("rp-review").hidden, !!$("rp-review").querySelector(".ring"), scene.dataset.state, $("say").textContent].join("|"));
+    ok("upload auto-starts the review (two halves at once)", __calls.length === before + 2 && __calls.at(-1).kind === "json" && !$("rp-review").hidden && $("rp-review").querySelector(".ring") && scene.dataset.state === "done", [__calls.length - before, __calls.at(-1).kind, $("rp-review").hidden, !!$("rp-review").querySelector(".ring"), scene.dataset.state, $("say").textContent].join("|"));
     $("tryExample").click();
     ok("example loads", resumeEl.value.includes("ALEX RIVERA") && !$("exampleNote").hidden && $("padName").textContent.includes("example"));
     ok("example docx name", (fileLabel.name).replace(/\.[^.]+$/, "").replace(/\(example\)|\b(resume|cv)\b/gi, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") === "alex-rivera");

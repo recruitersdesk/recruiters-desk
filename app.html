@@ -295,6 +295,12 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .item .links { font: 500 12px var(--font-mono); color: var(--muted); }
 .item .links a { color: var(--accent); }
 .item .fix::before { content: "Fix → "; font: 500 11px var(--font-mono); color: var(--accent); }
+.item .fix.ans::before { content: "How to answer → "; }
+.item .fix.say::before { content: "How to put it → "; }
+.pitch { background: var(--accent-soft); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; }
+.pitch p { margin: 0; font-size: 15px; line-height: 1.55; }
+.pitch .btn-link { justify-self: start; }
+.qa .t::after { content: none !important; }
 .item .fix.gap::before { content: "To land it → "; }
 .rw { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 @media (max-width: 620px) { .rw { grid-template-columns: minmax(0, 1fr); } }
@@ -642,7 +648,7 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 
   <footer class="foot">
     <span>Free and open source. No subscriptions, no ads.</span>
-    <span id="footAi">On the public site, the AI runs through <a href="https://puter.com" target="_blank" rel="noopener">Puter</a>: each person uses their own free allowance.</span>
+    <span id="footAi">The AI runs on free services (Cloudflare Workers AI, with <a href="https://puter.com" target="_blank" rel="noopener">Puter</a> as a backup), so nobody pays.</span>
     <a href="https://github.com/meherzankturel/recruiters-desk" target="_blank" rel="noopener">Source on GitHub</a>
   </footer>
 </div>
@@ -1075,12 +1081,18 @@ function loadPuter() {
   });
 }
 const puterSignedIn = () => { try { return !!window.puter?.auth?.isSignedIn(); } catch { return false; } };
-// opening the guest sign-in needs a real click, so buttons that call Sam start it straight from the click
+/* On the public site Sam reads through a small free relay first (Cloudflare Workers AI; source in relay/), so visitors see
+   no sign-in at all. Only if the relay is busy for the day or unreachable does Puter take over: its one-time Continue window
+   gives the visitor a free guest account that covers their own use. Neither path has a key in this page or costs the owner anything. */
+const RELAY_URL = window.RD_RELAY_URL ?? "https://recruiters-desk-relay.meherzankturel.workers.dev"; // tests point RD_RELAY_URL at a mock, or "" for Puter only
+const onPuter = () => !RELAY_URL || sessionStorage.getItem("rd.ai") === "puter";
+let lastPath = "";
+// opening Puter's window needs a real click, so when Puter is in use, buttons that call Sam start it straight from the click
 function warmAuth() {
-  if (inClaude || !window.puter || puterSignedIn() || puterAuth || onRelay()) return;
+  if (inClaude || !onPuter() || !window.puter || puterSignedIn() || puterAuth) return;
   puterAuth = window.puter.auth.signIn({ attempt_temp_user_creation: true }).finally(() => { puterAuth = null; });
 }
-document.addEventListener("click", (e) => { if (e.target.closest(".action, #rewrite, .fx-go .btn-primary, .rail-next .btn-primary, .errbox button, .stale button, .applied .btn-primary")) warmAuth(); }, true);
+document.addEventListener("click", (e) => { if (e.target.closest(".action, #rewrite, .fx-go .btn-primary, .rail-next .btn-primary, .errbox button, .stale button, .applied .btn-primary, .blanks .btn-primary")) warmAuth(); }, true);
 async function puterModel(p) {
   if (puterModelId) return puterModelId;
   let ids = [];
@@ -1090,19 +1102,13 @@ async function puterModel(p) {
   // Sonnet: the same careful reader as on claude.ai, at a cost that stretches each visitor's free allowance further
   return puterModelId = newest(/claude-sonnet/i) || newest(/claude-opus/i) || "anthropic/claude-sonnet-5-5";
 }
-// The backup: a small free relay the site owner runs (it holds a free AI key server-side, so nothing is exposed here).
-// Empty until it's set up; then Sam uses it automatically whenever Puter can't be used, with no extra step for the visitor.
-const RELAY_URL = window.RD_RELAY_URL ?? "https://recruiters-desk-relay.meherzankturel.workers.dev"; // source: relay/ in the repo (tests point RD_RELAY_URL at a mock)
-const FALLBACK = new Set(["auth_closed", "popup_blocked", "verify", "allowance"]);
-const onRelay = () => !!RELAY_URL && sessionStorage.getItem("rd.ai") === "relay";
 async function relayCall(input, { onText, signal } = {}) {
   lastPath = "backup";
   let res;
   try { res = await fetch(RELAY_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ input }), signal }); }
   catch (e) { throw signal?.aborted || e?.name === "AbortError" ? { code: "cancelled" } : { code: "upstream_error" }; }
   const body = await res.json().catch(() => ({}));
-  // out of free backup for today: let the next try go back to Puter
-  if (res.status === 429 || body.error === "busy") { sessionStorage.removeItem("rd.ai"); throw { code: "backup_busy" }; }
+  if (res.status === 429 || body.error === "busy") throw { code: "backup_busy" };
   if (!res.ok || typeof body.text !== "string") throw { code: "upstream_error" };
   if (!body.text.trim()) throw { code: "empty_completion" };
   onText?.({ text: body.text, delta: body.text });
@@ -1133,21 +1139,14 @@ function extractJson(text) {
   }
   throw { code: "invalid_json" };
 }
-let lastPath = "";
-function puterSample(p) {
-  async function call(input, opts = {}) {
-    if (onRelay() || (!p && RELAY_URL)) return relayCall(input, opts);
-    try { return await viaPuter(input, opts); }
-    catch (e) {
-      // Puter wanted a phone or card check, or the window was closed: carry on with the backup instead of stopping
-      if (RELAY_URL && FALLBACK.has(e?.code)) { sessionStorage.setItem("rd.ai", "relay"); return relayCall(input, opts); }
-      throw e;
-    }
-  }
+function webSample() {
   async function viaPuter(input, { onText, signal } = {}) {
     lastPath = "Puter";
+    const p = await loadPuter();
+    if (!p) throw { code: "no_ai" };
     try {
-      if (!puterSignedIn()) await (puterAuth || p.auth.signIn({ attempt_temp_user_creation: true }));
+      // the review's two halves share one sign-in
+      if (!puterSignedIn()) await (puterAuth ||= p.auth.signIn({ attempt_temp_user_creation: true }).finally(() => { puterAuth = null; }));
       const resp = await p.ai.chat(input, { model: await puterModel(p), stream: true, signal });
       let text = "";
       for await (const part of resp) { const t = part?.text || ""; if (t) { text += t; onText?.({ text, delta: t }); } }
@@ -1155,18 +1154,20 @@ function puterSample(p) {
       return { text, truncated: false };
     } catch (e) { throw e?.code === "empty_completion" ? e : puterError(e, signal); }
   }
-  const sample = (input, opts) => call(input, opts);
-  sample.json = async (input, opts) => {
-    try { return extractJson((await call(input, opts)).text); }
-    catch (e) {
-      // Puter's answer was cut off or unusable: try once more through the backup before showing an error
-      if (RELAY_URL && lastPath === "Puter" && ["invalid_json", "empty_completion", "upstream_error"].includes(e?.code)) {
-        sessionStorage.setItem("rd.ai", "relay");
-        return extractJson((await relayCall(input, opts)).text);
+  async function call(input, opts = {}) {
+    if (!onPuter()) {
+      try { return await relayCall(input, opts); }
+      catch (e) {
+        // the relay has used today's free allowance, or can't be reached: Puter carries on for the rest of this visit
+        if (!["backup_busy", "upstream_error"].includes(e?.code)) throw e;
+        sessionStorage.setItem("rd.ai", "puter");
+        say("My main free service is busy right now, so I'm switching to Puter. If a small Puter window appears, click Continue once and I'll carry on.");
       }
-      throw e;
     }
-  };
+    return viaPuter(input, opts);
+  }
+  const sample = (input, opts) => call(input, opts);
+  sample.json = async (input, opts) => extractJson((await call(input, opts)).text);
   sample.limits = async () => ({ modelTiers: ["default"] });
   return sample;
 }
@@ -1177,11 +1178,10 @@ const webDownloads = { save: async ({ filename, data }) => {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
   return { status: "saved" };
 } };
-const samplePromise = (async () => inClaude ? await window.claude.use("sample")
-  : (await loadPuter()) ? puterSample(window.puter) : RELAY_URL ? puterSample(null) : null)();
+const samplePromise = (async () => inClaude ? await window.claude.use("sample") : (RELAY_URL || await loadPuter()) ? webSample() : null)();
 const downloadsPromise = (async () => inClaude ? await window.claude.use("downloads") : webDownloads)();
 const UNAVAILABLE = inClaude ? "I work through Claude, and I can't reach it here. Sign in at claude.ai and open this page there, then try again."
-  : "I couldn't load the free AI service (Puter). Check your connection, allow js.puter.com if an ad blocker is on, then reload the page.";
+  : "I couldn't reach the free AI service. Check your connection (and allow js.puter.com if an ad blocker is on), then reload the page.";
 const ERR = {
   not_granted: "I need permission to use Claude for this. Reload the page and choose Allow when asked.",
   sampling_disabled: "Claude isn't available on this account, so I can't run this.",
@@ -1189,7 +1189,8 @@ const ERR = {
   allowance: "You've used up this month's free AI allowance from Puter. It resets each month, or you can add more in your Puter account. This site never charges you.",
   popup_blocked: "Your browser blocked the small sign-in window that gives you a free guest account. Allow pop-ups for this site, then click Try again.",
   auth_closed: "The Puter window closed before it finished. Puter is the free service that runs me. Click Try again to open it.",
-  verify: "Puter, the free service that runs me, asked for an extra check (a phone number) this time. That's Puter's anti-spam rule, not this site's. Try again later or from another network.",
+  verify: "Puter, the free service I'm using right now, asked for an extra check (a phone number). That's Puter's anti-spam rule, not this site's. Try again later.",
+  no_ai: "I couldn't reach the free AI service. Check your connection (and allow js.puter.com if an ad blocker is on), then reload the page.",
   backup_busy: "My free backup has reached today's limit. Try again tomorrow, or click Try again and choose Continue in the Puter window.",
   session_expired: "Your Claude session expired. Sign in again at claude.ai, then retry.",
   prompt_too_large: "That's more text than I can read at once. Trim the resume or job post and try again.",
@@ -1247,7 +1248,9 @@ const RUBRIC = [
   ["credibility", 10, "Credibility: no typos, skills backed by experience, nothing overstated, professional contact details"],
   ["standards", 5, "Regional and ATS standards"],
 ];
-const REVIEW_PROMPT = (resume, target, r = R()) => `You are the hiring manager for this role, working with a senior recruiter who has screened thousands of ${r.doc === "resume" ? "resumes" : "CVs"} in ${r.name}. The candidate is applying for jobs in ${r.name}. Review this resume the way they really do, in two passes, and be honest. Quote actual lines from the resume. No generic advice. Never invent facts about the candidate.
+// The review is asked for in two halves that run at the same time ("core": score and plan; "more": checks, roles, interview prep).
+// Each half writes about half as much, and writing is what takes the time, so the whole review arrives in roughly half the wait.
+const REVIEW_PROMPT = (resume, target, r = R(), part = "all") => `You are the hiring manager for this role, working with a senior recruiter who has screened thousands of ${r.doc === "resume" ? "resumes" : "CVs"} in ${r.name}. The candidate is applying for jobs in ${r.name}. Review this resume the way they really do, in two passes, and be honest. Quote actual lines from the resume. No generic advice. Never invent facts about the candidate.
 ${target ? "\nThe candidate says they are aiming for: <target>" + target + "</target>\nJudge the resume for those roles, not for their past roles: relevance, the 7-second skim and the plan should all ask \"does this read as that role?\". Be honest about the gap; never pretend they already qualify.\n" : "\nNo target role was given. Treat the role the resume's own headline and summary say they want as the target, and judge it for that role.\n"}
 <resume>
 ${resume}
@@ -1273,7 +1276,7 @@ ${RUBRIC.map(([k, max, what]) => `- ${k} (0-${max}): ${what}`).join("\n")}
 
 Reply with only JSON in this exact shape:
 {
-  "rubric": [{"key": "relevance" | "impact" | "progression" | "clarity" | "credibility" | "standards", "score": number, "note": "one line: why this many points, citing the resume"}],
+${part !== "more" ? `  "rubric": [{"key": "relevance" | "impact" | "progression" | "clarity" | "credibility" | "standards", "score": number, "note": "one line: why this many points, citing the resume"}],
   "score": the sum of the rubric scores,
   "verdict": "Advance to screen" | "Maybe pile" | "Pass",
   "headline": "one blunt sentence the hiring manager would say to the recruiter about this candidate",
@@ -1283,14 +1286,17 @@ Reply with only JSON in this exact shape:
   "strengths": [{"title": "...", "evidence": "line or detail from the resume"}],
   "missing": [{"item": "what's absent", "why": "why the recruiter or hiring manager notices it", "fix": "concrete fix"}],
   "red_flags": [{"issue": "...", "fix": "..."}],
-  "rewrites": [{"before": "a weak bullet copied word for word from the resume", "after": "rewritten as action verb + what + result, in ${r.spelling.split(" (")[0]} spelling, ATS-plain (no symbols beyond a bullet); use [X] where a number is needed and unknown, never a made-up number"}],
-  "ats": [{"check": "e.g. standard section headings, contact info in the body, job keywords, date format, acronyms spelled out, layout", "status": "pass" | "warn" | "fail", "note": "..."}],
+  "rewrites": [{"before": "a weak bullet copied word for word from the resume", "after": "rewritten as action verb + what + result, in ${r.spelling.split(" (")[0]} spelling, ATS-plain (no symbols beyond a bullet); never add a number that isn't on the resume and never use placeholders like [X]"}]` : ""}${part === "all" ? ",\n" : ""}${part !== "core" ? `  "ats": [{"check": "e.g. standard section headings, contact info in the body, job keywords, date format, acronyms spelled out, layout", "status": "pass" | "warn" | "fail", "note": "..."}],
   "canada": [{"check": "${r.name} standards, e.g. personal details, length, contact block, date and location format, references, spelling", "status": "pass" | "warn" | "fail", "note": "..."}],
-  "screen_questions": ["questions the recruiter will ask on the first call because of this resume"],
-  "roles": [{"title": "a job title exactly as job postings in ${r.name} write it", "fit": "strong" | "good" | "stretch", "in_target": true or false, "why": "the resume evidence that qualifies them, quoted or cited", "gap": "what they'd need to show or fix to land this one, or empty", "search": "2-4 words to type into a job board for this role"}]
+  "pitch": "a 30-second answer to \"Tell me about yourself\" for the target role, in first person, using only facts from the resume (3-4 sentences)",
+  "screen_questions": [{"q": "a question the recruiter or hiring manager is likely to ask because of something specific on this resume", "why": "what on the resume prompts it and what they want to learn", "answer": "how to answer well, naming the real project, job or result from the resume to use (STAR: situation, task, action, result)"}],
+  "explain": [{"item": "something on this resume to be ready to explain calmly (a gap, a short job, a career change, an overseas degree, a missing requirement)", "frame": "a one-line honest way to talk about it"}],
+  "roles": [{"title": "a job title exactly as job postings in ${r.name} write it", "fit": "strong" | "good" | "stretch", "in_target": true or false, "why": "the resume evidence that qualifies them, quoted or cited", "gap": "what they'd need to show or fix to land this one, or empty", "search": "2-4 words to type into a job board for this role"}]` : ""}
 }
-Include all 6 rubric parts. Score bands: 75-100 = "Advance to screen", 55-74 = "Maybe pile", 0-54 = "Pass". The verdict must match the score band.
-Give 3-5 strengths, 3-6 missing items, 0-4 red flags (typos go here, quoted), 3-4 rewrites, 5-6 ATS checks, 4-6 checks against the ${r.name} standards, 3-5 questions, 5-8 roles.
+${part !== "more" ? `Include all 6 rubric parts. Score bands: 75-100 = "Advance to screen", 55-74 = "Maybe pile", 0-54 = "Pass". The verdict must match the score band.
+Give 3-4 strengths, 3-5 missing items, 0-3 red flags (typos go here, quoted) and 2-3 rewrites.
+` : ""}${part !== "core" ? `Give 4-5 ATS checks, 3-5 checks against the ${r.name} standards, 3-4 interview questions, 0-3 things to explain and 4-6 roles.
+Interview questions must come from this resume, not a generic list: e.g. a project they'll be asked to walk through, a skill listed without a job behind it, a date that raises a question, or the gap between their experience and the target role. Include the questions a recruiter in ${r.name} routinely asks when the resume makes them relevant (for example work eligibility${r.work ? " (" + r.work + ")" : ""}, notice period or relocation).
 
 Roles: list the jobs this person should apply to now, the way a recruiter matches a candidate to open requisitions.
 - Start with roles inside or right next to the target (in_target: true), best fit first. Rate each one honestly: if the dated experience for it is short, it is "good" or "stretch", not "strong", and "gap" says exactly what's missing.
@@ -1299,6 +1305,7 @@ Roles: list the jobs this person should apply to now, the way a recruiter matche
 - "strong" = the resume already meets the usual must-haves for this title; "good" = meets most, with one gap; "stretch" = worth applying but a clear gap.
 - Target-adjacent roles count as in_target: true (for an AI engineer target: ML engineer, LLM or GenAI developer, AI solutions or applied AI roles, AI-focused software developer, AI support or implementation roles). Use the titles employers in ${r.name} post (for example on ${r.boards.map(b => b[0]).join(", ")}), not invented ones.
 - Each "why" must point to real lines in the resume. If the resume can't support a role, leave it out.
+` : ""}Keep every note, why and fix to one short sentence: the candidate reads this on a phone.
 Judge the resume against ${r.name} and ATS standards:
 
 ${regionRules(r)}
@@ -1449,7 +1456,7 @@ Fixes to apply (from the hiring manager's review):
 ${fixes.map((f, i) => `${i + 1}. ${f}`).join("\n")}
 
 Rules, in order of importance:
-1. Never invent anything: no new numbers, results, tools, employers, titles, dates, degrees or certifications. Where a fix needs a number or fact only the candidate knows, write [X] or [add: what's needed] in that spot instead.
+1. Never invent anything: no new numbers, results, tools, employers, titles, dates, degrees or certifications, and no placeholders such as [X]. Use only facts already on the resume. If a fix asks for a number the resume doesn't have, make the line stronger without one (clearer action, scope and outcome), and add that line to "needs_you" as an optional suggestion.
 2. Keep every job, project, date, school, certification and contact detail that is on the resume, with the same names and dates.
 3. Change only what the fixes cover, plus clear typos. Keep the candidate's own wording everywhere else.
 4. If a fix says to cut or back up skills, remove from the skills list only the items that no job or project on the resume uses.
@@ -1464,7 +1471,7 @@ Reply with only JSON in this exact shape:
 {
   "resume": "the full improved resume as plain text, with line breaks",
   "changes": [{"fix": "which fix, in a few words", "change": "what you changed, quoting the new line"}],
-  "needs_you": ["each [X] or [add: ...] you left, and what real detail belongs there"],
+  "needs_you": ["optional: a line that would be stronger with a real number, and which number (e.g. \"tickets per week\")"],
   "skipped": [{"fix": "...", "why": "..."}]
 }`;
 
@@ -1492,7 +1499,7 @@ function planSteps(d) {
     ...checks.filter(x => st(x) === "fail").map(x => ({ title: str(x.check), why: str(x.note), pill: ["Must fix", "bad"] })),
     ...arr(d.missing).map(x => ({ title: str(x.item), why: str(x.why), fix: str(x.fix), pill: ["Big impact", "acc"] })),
     arr(d.rewrites).length ? { title: `Swap in ${arr(d.rewrites).length === 1 ? "this rewritten bullet" : `these ${arr(d.rewrites).length} rewritten bullets`}`,
-      why: "Sam rewrote your weakest lines. Replace each [X] with a real number, or cut that part.", pill: ["Ready to copy", "good"],
+      why: "Sam rewrote your weakest lines using only what's already on your resume.", pill: ["Ready to copy", "good"],
       rewrites: arr(d.rewrites) } : null,
     ...checks.filter(x => st(x) === "warn").map(x => ({ title: str(x.check), why: str(x.note), pill: ["Quick check", "warn"] })),
   ].filter(x => x && x.title);
@@ -1536,7 +1543,7 @@ function applyBox(steps) {
   go.onclick = () => applyFixes(picks.filter(p => p.cb.checked).map(p => fixText(p.x)));
   return h("div", { class: "fx" },
     h("div", { class: "fx-top" }, h("div", {}, h("b", {}, "Let Sam make these changes"),
-      h("span", {}, "He rewrites your resume with the fixes you pick, reviews it again, and gives you a PDF. He never makes up numbers: where only you know one, you'll see [X] to fill in.")), open),
+      h("span", {}, "Sam rewrites your resume with the fixes you pick, using only facts already on it, then rescans it and gives you a PDF. He never makes up numbers: where only you know one, you'll see [X] to fill in.")), open),
     list);
 }
 function appliedCard(a) {
@@ -1546,13 +1553,16 @@ function appliedCard(a) {
   if (blanks) dl.hidden = true;
   const undo = h("button", { class: "btn-link", type: "button" }, "Undo Sam's changes");
   undo.onclick = undoFixes;
-  const delta = a.before != null && a.after != null ? (a.after - a.before) : null;
-  return h("div", { class: "applied" },
-    h("div", { class: "fx-top" }, h("div", {}, h("b", {}, `Sam applied ${arr(a.changes).length} ${arr(a.changes).length === 1 ? "change" : "changes"}` + (delta != null ? ` · score ${a.before} → ${a.after}` : "")),
-      h("span", {}, delta != null ? "Scores can move a few points between runs, so judge the changes, not just the number." : "")), h("div", { class: "row" }, dl, undo)),
+  const delta = !a.pending && a.before != null && a.after != null ? (a.after - a.before) : null;
+  return h("div", { class: "applied" + (a.pending ? " pending" : "") },
+    h("div", { class: "fx-top" }, h("div", {}, h("b", {}, `Sam ${a.pending ? "made" : "applied"} ${arr(a.changes).length} ${arr(a.changes).length === 1 ? "change" : "changes"}` + (delta != null ? ` · score ${a.before} → ${a.after}` : "")),
+      h("span", {}, a.pending ? "Fill in the details below. Then Sam rescans your new resume and gives you the PDF."
+        : delta != null && delta < -5 ? "The new version scored lower. Open Sam's notes to see why, or use Undo to go back to your original."
+        : delta != null ? "Your new resume is downloading as a PDF. Scores can move a few points between runs." : "")), h("div", { class: "row" }, dl, undo)),
     blanks,
-    blanks && arr(a.needs_you).length ? h("details", { class: "more" }, h("summary", {}, h("span", {}, "Sam's notes on what goes in each blank")), h("ul", { class: "chg" }, arr(a.needs_you).map(x => h("li", {}, str(x))))) : null,
-    arr(a.warnings).length ? h("div", { class: "needs warnbox" }, h("b", {}, "Check these"), h("ul", {}, arr(a.warnings).map(x => h("li", {}, x)))) : null,
+    arr(a.needs_you).length ? h("details", { class: "more" }, h("summary", {}, h("span", {}, "Optional: add a number if you have one", h("span", { class: "count" }, String(arr(a.needs_you).length)))),
+      h("ul", { class: "chg" }, arr(a.needs_you).map(x => h("li", {}, str(x))))) : null,
+    arr(a.warnings).length && blanks ? h("div", { class: "needs warnbox" }, h("ul", {}, arr(a.warnings).map(x => h("li", {}, x)))) : null,
     h("details", { class: "more" }, h("summary", {}, h("span", {}, "What Sam changed", h("span", { class: "count" }, String(arr(a.changes).length)))),
       h("ul", { class: "chg" }, arr(a.changes).map(c => h("li", {}, h("b", {}, str(c.fix) + ": "), str(c.change))),
         arr(a.skipped).map(c => h("li", { class: "skip" }, h("b", {}, "Skipped " + str(c.fix) + ": "), str(c.why))))));
@@ -1617,7 +1627,15 @@ async function applyFixes(fixes) {
   resumeEl.value = c.text; fileLabel = { name: base + " (improved by Sam)", ext: "NEW" };
   save(); refresh();
   pendingFix = { before, changes: arr(d.changes), needs_you: arr(d.needs_you).map(str), skipped: arr(d.skipped), warnings: c.warnings };
-  await downloadResume(true);
+  const n = blanksIn(resumeEl.value).length;
+  if (n && outs.review) {
+    // a resume full of [X] reads as unfinished and would score low, so the rescan waits until they're filled in
+    outs.review.pending = pendingFix; pendingFix = null;
+    lastRun.review = inputKey("review"); saveOuts("review");
+    paint("review", outs.review); refreshStale(); mood("idle");
+    say(`I've made the changes. Fill in the ${n} ${n === 1 ? "detail" : "details"} only you know, and I'll rescan your new resume and give you the PDF.`);
+    return;
+  }
   await run("review");
 }
 // the blanks Sam leaves where only the applicant knows the detail; a PDF never goes out with one in it
@@ -1643,13 +1661,15 @@ function blanksBox() {
     const inp = h("input", { type: "text", id: "blank" + i, maxlength: "120", placeholder: m[0] === "[X]" ? "the real number" : m[0].slice(5, -1).trim() });
     return { m, inp, row: h("label", { class: "blank-row", for: "blank" + i }, h("span", {}, line.length > 160 ? line.slice(0, 157) + "…" : line), inp) };
   });
-  const go = h("button", { class: "btn-primary", type: "button", disabled: "" }, "Save and download PDF");
+  const rescan = !!outs.review?.pending;
+  const go = h("button", { class: "btn-primary", type: "button", disabled: "" }, rescan ? "Fill in and rescan" : "Save and download PDF");
   const ready = () => { go.disabled = inputs.some(x => !x.inp.value.trim()); };
   inputs.forEach(x => x.inp.addEventListener("input", ready));
   go.onclick = async () => {
     let i = 0;
     resumeEl.value = resumeEl.value.replace(BLANK_RE, (m) => inputs[i++]?.inp.value.trim() || m);
     save(); refresh();
+    if (rescan) return run("review");
     // filling the blanks doesn't change what Sam reviewed, so his notes stay current
     if (lastRun.review) { lastRun.review = inputKey("review"); saveOuts(); }
     if (outs.review) paint("review", outs.review);
@@ -1666,6 +1686,7 @@ function undoFixes() {
   let o; try { o = JSON.parse(store.get("rd.original") || "null"); } catch { o = null; }
   if (!o?.text) return;
   resumeEl.value = o.text; fileLabel = o.file || null; store.set("rd.original", "");
+  if (outs.review?.pending) { delete outs.review.pending; lastRun.review = inputKey("review"); saveOuts(); paint("review", outs.review); }
   save(); refresh();
   say("Done. Your resume is back to the version you uploaded. Review it again to see my notes for it.");
 }
@@ -1710,26 +1731,42 @@ function renderReview(d) {
     ],
     tabs: [
       { key: "plan", label: "Your plan", count: steps.length, body: [
-        d.applied ? appliedCard({ ...d.applied, after: s }) : null,
+        d.applied ? appliedCard({ ...d.applied, after: s }) : d.pending ? appliedCard({ ...d.pending, pending: true }) : null,
         applyBox(steps),
         h("p", { class: "tab-lede" }, steps.length > PLAN_TOP ? `Start with these ${PLAN_TOP}. They matter most.` : steps.length ? "Most important first. Open a step to see what to do." : ""),
         planBlock(steps, "No changes needed. Tailor it to each job post with Check my fit.")] },
       roles.length ? { key: "roles", label: "Roles", count: roles.length, body: [
         h("p", { class: "tab-lede" }, "Best fit first. Open a role for what you'd need and where to search."),
         section("Roles you can apply to", roles.length, rolesList(roles, reg))] } : null,
-      arr(d.strengths).length || d.top_strength ? { key: "working", label: "What's working", count: arr(d.strengths).length, body: [
+      arr(d.strengths).length || d.top_strength ? { key: "strengths", label: "Strengths", count: arr(d.strengths).length, body: [
         d.top_strength?.why ? h("div", { class: "star" }, h("b", {}, str(d.top_strength.title)), h("span", {}, str(d.top_strength.why))) : null,
         section("Other strengths", arr(d.strengths).length, h("div", { class: "list" },
           arr(d.strengths).map(x => h("div", { class: "item good" }, h("span", { class: "t" }, str(x.title)), h("span", { class: "d" }, str(x.evidence))))))] } : null,
       { key: "checks", label: "Checks", count: flagged || null, body: [
+        d.six_second_skim ? section("First impression: the 7-second skim", null, h("div", { class: "skim" }, str(d.six_second_skim))) : null,
         rub ? section("How the score adds up", null, rubricBlock(rub)) : null,
         section("ATS check", null, checkList(d.ats)),
         arr(d.canada).length ? section(`${reg.label || reg.name} ${reg.doc.split(" ")[0]} standard`, null, checkList(d.canada)) : null] },
-      d.six_second_skim || arr(d.screen_questions).length ? { key: "prep", label: "Interview prep", count: null, body: [
-        d.six_second_skim ? section("The 7-second skim", null, h("div", { class: "skim" }, str(d.six_second_skim))) : null,
-        arr(d.screen_questions).length ? section("They'll ask you on the first call", null, h("ol", { class: "q" }, arr(d.screen_questions).map(q => h("li", {}, str(q))))) : null] } : null,
+      d.pitch || arr(d.screen_questions).length ? { key: "prep", label: "Interview prep", count: arr(d.screen_questions).length || null, body: prepBlock(d) } : null,
     ],
   };
+}
+// interview prep built from this resume: a pitch, the questions it will raise, and what to be ready to explain
+function prepBlock(d) {
+  const qs = arr(d.screen_questions).map(x => typeof x === "string" ? { q: x } : x).filter(x => str(x.q));
+  const copy = h("button", { class: "btn-link", type: "button" }, "Copy");
+  copy.onclick = async () => { try { await navigator.clipboard.writeText(str(d.pitch)); copy.textContent = "Copied"; } catch { copy.textContent = "Select and copy it"; } setTimeout(() => copy.textContent = "Copy", 2000); };
+  return [
+    d.pitch ? section("Your 30-second answer to \"Tell me about yourself\"", null, h("div", { class: "pitch" }, h("p", {}, str(d.pitch)), copy)) : null,
+    qs.length ? section("Questions your resume will raise", qs.length, h("div", { class: "list" }, qs.map((x, i) =>
+      h("details", { class: "item role qa", ...(i === 0 ? { open: "" } : {}) },
+        h("summary", {}, h("span", { class: "t" }, str(x.q))),
+        x.why ? h("span", { class: "d" }, h("b", {}, "Why they ask: "), str(x.why)) : null,
+        x.answer ? h("span", { class: "fix ans" }, str(x.answer)) : null)))) : null,
+    arr(d.explain).length ? section("Be ready to explain", arr(d.explain).length, h("div", { class: "list" },
+      arr(d.explain).map(x => typeof x === "string" ? h("div", { class: "item warn" }, h("span", { class: "d" }, x))
+        : h("div", { class: "item warn" }, h("span", { class: "t" }, str(x.item)), x.frame ? h("span", { class: "fix say" }, str(x.frame)) : null)))) : null,
+  ];
 }
 function checkList(items) {
   return h("div", { class: "list" }, arr(items).map(x => h("div", { class: "item " + statusTone(x.status) },
@@ -1851,9 +1888,7 @@ async function run(kind) {
   if (!sample) { say(UNAVAILABLE); if (kind !== "letter") $("rp-" + kind).replaceChildren(h("div", { class: "errbox" }, h("span", {}, UNAVAILABLE))); else $("letterState").replaceChildren(h("div", { class: "errbox" }, h("span", {}, UNAVAILABLE))); return; }
   setRunning(true); mood("reading", { review: "Sam is reading your resume…", match: "Sam is checking you against the job…", letter: "Sam is writing your cover letter…" }[kind]);
   // the first time on the public site, Puter asks once before it creates the free guest account
-  if (!inClaude && !puterSignedIn() && !onRelay()) say(RELAY_URL
-    ? "First time here? Click Continue in the small Puter window to use the free AI. If it asks for anything else, just close it and I'll carry on another way."
-    : "First time here? Click Continue in the Puter window. It gives you a free guest account, no email or card, and then I'll start reading.");
+  if (!inClaude && onPuter() && !puterSignedIn()) say("First time here? Click Continue in the small Puter window. It gives you a free guest account, no email or card, and then I'll start reading.");
   else say("", true);
   ctl = new AbortController();
   $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -1861,16 +1896,25 @@ async function run(kind) {
   try {
     if (kind === "letter") return await runLetter(sample, resume, jd);
     const panel = $("rp-" + kind);
-    panel.replaceChildren(loadingBlock(kind === "review" ? "Sam is reading your resume line by line. This usually takes 1-2 minutes." : "Sam is checking you against every requirement. This usually takes 1-2 minutes."));
-    const d = (await sample.json(kind === "review" ? REVIEW_PROMPT(resume, targetEl.value.trim().slice(0, 160)) : MATCH_PROMPT(resume, jd), { signal: ctl.signal, modelTier: await pickTier(sample),
+    panel.replaceChildren(loadingBlock(kind === "review" ? "Sam is reading your resume line by line. This usually takes under a minute." : "Sam is checking you against every requirement. This usually takes under a minute."));
+    const opts = { signal: ctl.signal, modelTier: await pickTier(sample),
       // streaming keeps the connection busy during a long answer and lets Sam show he's writing
-      onText: ({ text }) => { if (text && !panel.dataset.streaming) { panel.dataset.streaming = "1"; panel.querySelector(".loading .muted").textContent = "Sam is writing up his notes…"; } } })) || {};
+      onText: ({ text }) => { if (text && !panel.dataset.streaming) { panel.dataset.streaming = "1"; const m = panel.querySelector(".loading .muted"); if (m) m.textContent = "Sam is writing up his notes…"; } } };
+    const target = targetEl.value.trim().slice(0, 160);
+    // the review's two halves run side by side; the score and plan come from "core", the rest from "more"
+    const d = kind === "review"
+      ? Object.assign({}, ...(await Promise.all(["more", "core"].map(part => sample.json(REVIEW_PROMPT(resume, target, R(), part), opts)))).map(x => x || {}))
+      : (await sample.json(MATCH_PROMPT(resume, jd), opts)) || {};
     delete panel.dataset.streaming; failedOnce = false;
-    if (kind === "review") { d.region = $("region").value; keepRealRewrites(d, resume); regionChecks(d, resume, R()); sortRoles(d); if (pendingFix) { d.applied = pendingFix; pendingFix = null; } } else sortKeywords(d, resume);
+    if (kind === "review") { d.region = $("region").value; keepRealRewrites(d, resume); regionChecks(d, resume, R()); sortRoles(d); const fix = pendingFix || outs.review?.pending; if (fix) { d.applied = fix; pendingFix = null; } } else sortKeywords(d, resume);
     paint(kind, d); outs[kind] = d;
     mood("done");
     lastRun[kind] = inputKey(kind); saveOuts(kind); refreshStale();
-    if (kind === "review" && d.applied) say(`Rescanned. ${d.applied.before != null ? `${d.applied.before} → ${d.score}/100` : `${d.score}/100`}, ${reviewBand(clamp(d.score))[0]}. ${blanksIn(resumeEl.value).length ? ` Fill in the ${blanksIn(resumeEl.value).length} blanks below, then download your PDF.` : " Your new resume is downloading as a PDF."}`);
+    if (kind === "review" && d.applied) {
+      const left = blanksIn(resumeEl.value).length;
+      say(`Rescanned. ${d.applied.before != null ? `${d.applied.before} → ${d.score}/100` : `${d.score}/100`}, ${reviewBand(clamp(d.score))[0]}.${left ? ` Fill in the ${left} blanks below, then download your PDF.` : " Your new resume is downloading as a PDF."}`);
+      if (!left) downloadResume(true);
+    }
     else if (kind === "review") say(`Done. ${d.score}/100, so my verdict is ${reviewBand(clamp(d.score))[0]}. Your strongest point is "${str(d.top_strength?.title) || "in my notes"}".${d.roles.length ? ` Best-fit role: ${str(d.roles[0].title)}.` : ""} Your plan is below.`);
     else say(`You're a ${clamp(d.match_score)}% match: ${matchBand(clamp(d.match_score))[0]}. Your plan for this job is below.`);
   } catch (e) {
@@ -1932,7 +1976,7 @@ $("copyLetter").onclick = async () => {
 /* ---------- PDF: real text (not a picture), so applicant tracking systems can read every word ---------- */
 // the built-in PDF fonts cover Latin-1; turn the usual typographic characters into plain ones and flag anything else
 function pdfPlain(t) {
-  return t.replace(/[‐‑‒–—−]/g, "-").replace(/[‘’′]/g, "'").replace(/[“”″]/g, '"')
+  return t.replace(/\r/g, "").replace(/\t/g, " ").replace(/[‐‑‒–—−]/g, "-").replace(/[‘’′]/g, "'").replace(/[“”″]/g, '"')
     .replace(/…/g, "...").replace(/[→➔➤]/g, "->").replace(/[   ]/g, " ").replace(/€/g, "EUR ")
     .replace(/[•●▪‣⁃]\s*/g, "- ");
 }
@@ -2061,6 +2105,6 @@ if (inClaude) $("footAi").hidden = true;
     }
   } catch {}
 })();
-if (!inClaude) $("privacyText").textContent = "Saved only in your browser. Sent to the AI (through Puter) only when you ask Sam.";
+if (!inClaude) $("privacyText").textContent = "Kept only in this tab. Sent to the AI only when you ask Sam.";
 samplePromise.then(s => { if (!s) say(UNAVAILABLE); });
 </script>

@@ -3,7 +3,7 @@
 // and this Worker stores no resume text: only a per-visitor counter (a hash of the IP, kept for a day).
 const ORIGINS = ["https://meherzankturel.github.io"];
 const MODEL = "@cf/openai/gpt-oss-120b";
-const PER_VISITOR_PER_DAY = 12; // a review, a fit check and a letter, a few times over
+const PER_VISITOR_PER_DAY = 24; // a review (2 requests: it runs in two halves), a fit check and a letter, a few times over
 const MAX_CHARS = 60000;
 // only Sam's own requests are relayed, so this can't be used as a general free chatbot
 const OURS = [/^You are the hiring manager for this role/, /^You are an expert technical recruiter doing a fit analysis/, /^Write a tailored cover letter/, /^You are a senior resume writer/];
@@ -64,9 +64,11 @@ export default {
 
     const wantsJson = !/^Write a tailored cover letter/.test(input);
     try {
-      let text = textOf(await env.AI.run(MODEL, { input, reasoning: { effort: "medium" }, max_output_tokens: 16000 }));
-      // one redo with lighter reasoning (more room for the answer) if it came back empty or cut off
-      if (!text.trim() || (wantsJson && !hasJson(text))) text = textOf(await env.AI.run(MODEL, { input, reasoning: { effort: "low" }, max_output_tokens: 16000 }));
+      // "low" reasoning: the prompt already spells out a careful two-pass method, and it answers in well under a minute
+      const ask = () => env.AI.run(MODEL, { input, reasoning: { effort: "low" }, max_output_tokens: 12000 });
+      let text = textOf(await ask());
+      // one redo if it came back empty or cut off
+      if (!text.trim() || (wantsJson && !hasJson(text))) text = textOf(await ask());
       if (!text.trim()) return reply({ error: "empty" }, 502, origin);
       return reply({ text }, 200, origin);
     } catch (e) {
