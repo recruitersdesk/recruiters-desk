@@ -47,7 +47,7 @@ async function pdfText(blob) {
     ok("review: prompt carries Canadian + ATS + honesty rules", c1.input.includes("Social Insurance Number") && c1.input.includes("Single column") && c1.input.includes("Be honest, not kind") && c1.opts.modelTier === "complex");
     ok("review: rewrite of a real bullet kept", rv.textContent.includes("Shipped 14 client websites with Next.js"));
     ok("review: resume stamped", scene.dataset.state === "done");
-    ok("review saved for reload", JSON.parse(localStorage.getItem("rd.out")).outs.review?.headline?.startsWith("Solid builder"));
+    ok("review saved for reload", JSON.parse(sessionStorage.getItem("rd.out")).outs.review?.headline?.startsWith("Solid builder"));
     ok("review: Sam's summary matches", $("say").textContent.includes("Advance to screen") && $("say").textContent.includes("Shipped RAG"), $("say").textContent);
 
     const n0 = __calls.length;
@@ -112,7 +112,7 @@ async function pdfText(blob) {
     ok("target change flags the review", !$("stale").hidden && $("stale").textContent.startsWith("The roles you're aiming for has changed"), $("stale").textContent);
     $("go-review").click(); await wait(400);
     ok("target sent to Sam", __calls.at(-1).input.includes("<target>Junior AI Engineer, GenAI Developer</target>") && !__calls.at(-1).input.includes("No target role was given"));
-    ok("target saved", localStorage.getItem("rd.target") === "Junior AI Engineer, GenAI Developer");
+    ok("target saved", sessionStorage.getItem("rd.target") === "Junior AI Engineer, GenAI Developer");
     ok("fresh review after target change not stale", $("stale").hidden, $("stale").textContent);
     ok("after a success it goes back to the careful model", __calls.at(-1).opts.modelTier === "complex", __calls.at(-1).opts.modelTier);
     // roles: sorted best first, bad fit -> stretch, empty titles dropped, job links
@@ -209,13 +209,13 @@ async function pdfText(blob) {
     // clearing
     $("go-review").click(); await wait(400);
     $("removeResume").click(); await wait(20);
-    ok("Remove clears resume + notes, keeps job post", !resumeEl.value && $("results").hidden && scene.dataset.has === "0" && jdEl.value.includes("Maple") && !localStorage.getItem("rd.resume") && !$("startOver").hidden);
+    ok("Remove clears resume + notes, keeps job post", !resumeEl.value && $("results").hidden && scene.dataset.has === "0" && jdEl.value.includes("Maple") && !sessionStorage.getItem("rd.resume") && !$("startOver").hidden);
     $("tryExample").click(); $("go-review").click(); await wait(400);
     $("startOver").click(); await wait(20);
     ok("Start over needs a second click", resumeEl.value.includes("ALEX") && $("startOver").textContent.includes("Click again"));
     $("startOver").click(); await wait(20);
-    ok("Start over clears saved notes", !localStorage.getItem("rd.out"));
-    ok("Start over clears everything", !resumeEl.value && !jdEl.value && $("results").hidden && $("rt-review").hidden && !$("rp-review").textContent && !$("letter").textContent && !localStorage.getItem("rd.resume") && !localStorage.getItem("rd.jd") && $("startOver").hidden && $("fileChip").hidden && !$("drop").hidden);
+    ok("Start over clears saved notes", !sessionStorage.getItem("rd.out"));
+    ok("Start over clears everything", !resumeEl.value && !jdEl.value && $("results").hidden && $("rt-review").hidden && !$("rp-review").textContent && !$("letter").textContent && !sessionStorage.getItem("rd.resume") && !sessionStorage.getItem("rd.jd") && $("startOver").hidden && $("fileChip").hidden && !$("drop").hidden);
     ok("journey resets after Start over", $("journey").querySelector('[data-go="resume"]').dataset.state === "now");
     ok("after reset Sam greets again", $("say").textContent.startsWith("Hi, I'm Sam"));
   } catch (e) { T.push({ name: "EXCEPTION", pass: false, info: String(e && e.stack || e) }); }

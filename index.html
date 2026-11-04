@@ -825,9 +825,14 @@ function say(text, typing) {
 function mood(state, padText) { scene.dataset.state = state; if (padText) $("padMsg").textContent = padText; }
 
 /* ---------- inputs ---------- */
+// Your resume, job post and Sam's notes live only for this tab: a refresh keeps them, closing the tab (or a new tab) starts fresh.
+// Only the region choice is remembered between visits.
+const KEEP = new Set(["rd.region"]);
+const area = (k) => KEEP.has(k) ? localStorage : sessionStorage;
+try { ["rd.resume", "rd.jd", "rd.file", "rd.target", "rd.out", "rd.original"].forEach(k => localStorage.removeItem(k)); } catch {} // from older versions that kept everything
 const store = {
-  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  get(k) { try { return area(k).getItem(k); } catch { return null; } },
+  set(k, v) { try { area(k).setItem(k, v); } catch {} },
 };
 const wc = (s) => (s.trim().match(/\S+/g) || []).length;
 let fileLabel = null;
