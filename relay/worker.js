@@ -23,6 +23,20 @@ async function visitorKey(req) {
   const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip + day));
   return "v:" + day + ":" + [...new Uint8Array(hash)].slice(0, 12).map(b => b.toString(16).padStart(2, "0")).join("");
 }
+// the same balanced-brace JSON check the page uses, so a broken answer is redone here instead of failing there
+function hasJson(text) {
+  for (let start = text.indexOf("{"); start >= 0; start = text.indexOf("{", start + 1)) {
+    let depth = 0, inStr = false, esc = false;
+    for (let i = start; i < text.length; i++) {
+      const c = text[i];
+      if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+      if (c === '"') inStr = true;
+      else if (c === "{") depth++;
+      else if (c === "}" && --depth === 0) { try { JSON.parse(text.slice(start, i + 1)); return true; } catch { break; } }
+    }
+  }
+  return false;
+}
 // pull the answer text out of whichever response shape the model returns
 function textOf(r) {
   if (!r) return "";
@@ -48,9 +62,11 @@ export default {
     if (used >= PER_VISITOR_PER_DAY) return reply({ error: "busy" }, 429, origin);
     await env.LIMITS.put(key, String(used + 1), { expirationTtl: 60 * 60 * 26 });
 
+    const wantsJson = !/^Write a tailored cover letter/.test(input);
     try {
-      const r = await env.AI.run(MODEL, { input, reasoning: { effort: "medium" }, max_output_tokens: 8000 });
-      const text = textOf(r);
+      let text = textOf(await env.AI.run(MODEL, { input, reasoning: { effort: "medium" }, max_output_tokens: 16000 }));
+      // one redo with lighter reasoning (more room for the answer) if it came back empty or cut off
+      if (!text.trim() || (wantsJson && !hasJson(text))) text = textOf(await env.AI.run(MODEL, { input, reasoning: { effort: "low" }, max_output_tokens: 16000 }));
       if (!text.trim()) return reply({ error: "empty" }, 502, origin);
       return reply({ text }, 200, origin);
     } catch (e) {

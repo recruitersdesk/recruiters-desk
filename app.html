@@ -258,6 +258,8 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .bar::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 35%; background: var(--accent); border-radius: 4px; animation: slide 1.4s ease-in-out infinite; }
 @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
 .muted { color: var(--muted); font-size: 14px; }
+.progress-line { display: flex; gap: 10px; align-items: baseline; font-size: 14px; color: var(--ink); }
+.progress-line .clock { font: 600 13px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent); min-width: 34px; }
 .errbox { background: var(--bad-soft); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; justify-items: start; max-width: 560px; }
 
 .verdict { display: grid; gap: 14px; justify-items: start; }
@@ -1094,6 +1096,7 @@ const RELAY_URL = window.RD_RELAY_URL ?? "https://recruiters-desk-relay.meherzan
 const FALLBACK = new Set(["auth_closed", "popup_blocked", "verify", "allowance"]);
 const onRelay = () => !!RELAY_URL && sessionStorage.getItem("rd.ai") === "relay";
 async function relayCall(input, { onText, signal } = {}) {
+  lastPath = "backup";
   let res;
   try { res = await fetch(RELAY_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ input }), signal }); }
   catch (e) { throw signal?.aborted || e?.name === "AbortError" ? { code: "cancelled" } : { code: "upstream_error" }; }
@@ -1115,6 +1118,22 @@ function puterError(e, signal) {
   if (/rate.?limit|429/.test(t)) return { code: "rate_limited" };
   return { code: "upstream_error" };
 }
+// pull the JSON object out of a model's answer, even with prose or code fences around it:
+// try each "{" in turn and take the first span that balances (ignoring braces inside strings) and parses
+function extractJson(text) {
+  for (let start = text.indexOf("{"); start >= 0; start = text.indexOf("{", start + 1)) {
+    let depth = 0, inStr = false, esc = false;
+    for (let i = start; i < text.length; i++) {
+      const c = text[i];
+      if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+      if (c === '"') inStr = true;
+      else if (c === "{") depth++;
+      else if (c === "}" && --depth === 0) { try { return JSON.parse(text.slice(start, i + 1)); } catch { break; } }
+    }
+  }
+  throw { code: "invalid_json" };
+}
+let lastPath = "";
 function puterSample(p) {
   async function call(input, opts = {}) {
     if (onRelay() || (!p && RELAY_URL)) return relayCall(input, opts);
@@ -1126,6 +1145,7 @@ function puterSample(p) {
     }
   }
   async function viaPuter(input, { onText, signal } = {}) {
+    lastPath = "Puter";
     try {
       if (!puterSignedIn()) await (puterAuth || p.auth.signIn({ attempt_temp_user_creation: true }));
       const resp = await p.ai.chat(input, { model: await puterModel(p), stream: true, signal });
@@ -1137,9 +1157,15 @@ function puterSample(p) {
   }
   const sample = (input, opts) => call(input, opts);
   sample.json = async (input, opts) => {
-    const { text } = await call(input, opts);
-    const a = text.indexOf("{"), b = text.lastIndexOf("}");
-    try { return JSON.parse(text.slice(a, b + 1)); } catch { throw { code: "invalid_json" }; }
+    try { return extractJson((await call(input, opts)).text); }
+    catch (e) {
+      // Puter's answer was cut off or unusable: try once more through the backup before showing an error
+      if (RELAY_URL && lastPath === "Puter" && ["invalid_json", "empty_completion", "upstream_error"].includes(e?.code)) {
+        sessionStorage.setItem("rd.ai", "relay");
+        return extractJson((await relayCall(input, opts)).text);
+      }
+      throw e;
+    }
   };
   sample.limits = async () => ({ modelTiers: ["default"] });
   return sample;
@@ -1781,12 +1807,22 @@ function check(kind) {
 function loadingBlock(text) {
   const cancel = h("button", { class: "btn-ghost", type: "button" }, "Stop");
   cancel.onclick = () => ctl?.abort();
-  return h("div", { class: "loading" }, h("div", { class: "bar" }), h("span", { class: "muted" }, text), cancel);
+  // a running clock and what Sam is doing, so a 1-2 minute careful read never looks frozen
+  const STAGES = ["Skimming the top third, the way a recruiter does", "Reading every job and date", "Checking each skill against your experience", "Scoring each part", "Writing up your plan"];
+  const clock = h("span", { class: "clock" }, "0:00"), stage = h("span", { class: "stage" }, STAGES[0]);
+  const t0 = Date.now(), timer = setInterval(() => {
+    if (!clock.isConnected) return clearInterval(timer);
+    const sec = Math.floor((Date.now() - t0) / 1000);
+    clock.textContent = Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+    stage.textContent = STAGES[Math.min(STAGES.length - 1, Math.floor(sec / 20))] + "…";
+  }, 1000);
+  return h("div", { class: "loading" }, h("div", { class: "bar" }), h("span", { class: "muted" }, text),
+    h("span", { class: "progress-line" }, clock, stage), cancel);
 }
 function errorBlock(e, kind) {
   const retry = h("button", { class: "btn-ghost", type: "button" }, "Try again");
   retry.onclick = () => run(kind);
-  return h("div", { class: "errbox" }, h("span", {}, errMsg(e)), retry, h("span", { class: "hint" }, "Error code: " + str(e?.code || "unknown")));
+  return h("div", { class: "errbox" }, h("span", {}, errMsg(e)), retry, h("span", { class: "hint" }, "Error code: " + str(e?.code || "unknown") + (lastPath && !inClaude ? ` (via ${lastPath})` : "")));
 }
 // the resume review judges the resume on its own; only the fit check and the letter depend on the job post
 const inputKey = (kind) => resumeEl.value.trim() + "\u0000" + (kind === "review" ? "" : jdEl.value.trim()) + "\u0000" + (kind === "review" ? targetEl.value.trim() : "") + "\u0000" + $("region").value;
