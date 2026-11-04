@@ -124,6 +124,13 @@ async function pdfText(blob) {
     ok("roles: target roles first (by fit), fallback last, empty dropped", rt.join("|") === "Junior AI Engineer|Machine Learning Engineer|Bogus Role|Full Stack DeveloperFallback", rt.join("|"));
     ok("roles: unknown fit shown as stretch", rs && /stretch fit/.test(rs.querySelectorAll(".item")[2].textContent), rs && rs.textContent);
     ok("best card says it's for your goal", $("rp-review").querySelector(".fact.best .k").textContent === "Best fit for your goal");
+    // honesty enforced in code
+    const rr = { roles: [{ title: "GenAI Developer", fit: "strong", months: 4 }, { title: "IT Support Analyst", fit: "strong", months: 28 }, { title: "Old shape", fit: "strong" }] }; sortRoles(rr);
+    ok("roles: 'strong' needs 12+ dated months; older results keep theirs", rr.roles.find(x => x.title === "GenAI Developer").fit === "good" && rr.roles.find(x => x.title === "IT Support Analyst").fit === "strong" && rr.roles.find(x => x.title === "Old shape").fit === "strong", JSON.stringify(rr.roles));
+    const mh = (met, n) => Array.from({ length: n }, (_, i) => ({ requirement: "r" + i, status: i < met ? "met" : "missing" }));
+    ok("match: half the must-haves caps the score near 60", matchScore({ match_score: 68, must_haves: mh(5, 10), role: { seniority: "Junior", candidate_level: "Junior" } }) === 60);
+    ok("match: senior role for an early-career candidate is lower still (your Serotonin case)", matchScore({ match_score: 68, must_haves: mh(5, 10), role: { seniority: "Mid-level / senior individual contributor", candidate_level: "Early-career to mid-level" } }) === 52 && matchBand(52)[0] === "Stretch");
+    ok("match: a strong honest score is left alone", matchScore({ match_score: 82, must_haves: mh(10, 10), role: { seniority: "Junior", candidate_level: "Junior" } }) === 82);
     // style nits never lead the plan
     const ps = planSteps({ red_flags: [{ issue: "Inconsistent bullet punctuation – some end with periods" }, { issue: "Contact line uses pipes (|)" }, { issue: "Misspelled \"Pyhton\" (should be \"Python\")" }], missing: [{ item: "Numbers" }] });
     ok("plan: real typo first, style points last as quick checks", ps[0].title.startsWith("Misspelled") && ps[0].pill[0] === "Fix first" && ps.at(-1).pill[0] === "Quick check" && ps.at(-2).pill[0] === "Quick check" && ps[1].title === "Numbers", ps.map(x => x.pill[0] + ":" + x.title.slice(0, 20)).join(" | "));

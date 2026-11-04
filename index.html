@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="20261104150140">
+<meta name="build" content="20261104151117">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Free AI recruiter: an honest hiring-manager review of your resume, a job-fit check and a tailored cover letter, for the country you are applying in.">
 <meta property="og:title" content="Recruiter's Desk">
@@ -286,6 +286,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .ring { width: 120px; height: 120px; position: relative; }
 .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .ring .num { position: absolute; inset: 0; display: grid; place-items: center; font: 700 36px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.ring .num > div { text-align: center; }
 .ring .num span { font: 400 11px/1 var(--font-mono); color: var(--muted); display: block; text-align: center; margin-top: 4px; }
 .stamp { display: inline-block; font: 700 12px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .1em; padding: 7px 10px; border: 2px solid currentColor; border-radius: 4px; transform: rotate(-2deg); }
 .c-good { color: var(--good); } .c-warn { color: var(--warn); } .c-bad { color: var(--bad); }
@@ -1301,10 +1302,10 @@ ${part !== "more" ? `  "rubric": [{"key": "relevance" | "impact" | "progression"
   "red_flags": [{"issue": "a real problem a hiring manager would hold against the candidate: a misspelled word (quote the wrong spelling and the right one, which must differ), dates that contradict each other, a claim the rest of the resume doesn't support. Never style preferences such as punctuation, hyphenation, capitalisation or separators", "fix": "..."}],
   "rewrites": [{"before": "a weak bullet copied word for word from the resume", "after": "rewritten as action verb + what + result, in ${r.spelling.split(" (")[0]} spelling, ATS-plain (no symbols beyond a bullet); never add a number that isn't on the resume and never use placeholders like [X]"}]` : ""}${part === "all" ? ",\n" : ""}${part !== "core" ? `  "ats": [{"check": "e.g. standard section headings, contact info in the body, job keywords, date format, acronyms spelled out, layout", "status": "pass" | "warn" | "fail", "note": "..."}],
   "canada": [{"check": "${r.name} standards, e.g. personal details, length, contact block, date and location format, references, spelling", "status": "pass" | "warn" | "fail", "note": "..."}],
-  "pitch": "a 30-second answer to \"Tell me about yourself\" for the target role, in first person, using only facts from the resume (3-4 sentences)",
-  "screen_questions": [{"q": "a question the recruiter or hiring manager is likely to ask because of something specific on this resume", "why": "what on the resume prompts it and what they want to learn", "answer": "how to answer well, naming the real project, job or result from the resume to use (STAR: situation, task, action, result)"}],
+  "pitch": "a 30-second answer to \"Tell me about yourself\" for the target role, in first person, using only facts from the resume (3-4 sentences). Add up years from ALL the dated jobs in a field, and name only skills that a job or project on the resume actually uses",
+  "screen_questions": [{"q": "a question the recruiter or hiring manager is likely to ask because of something specific on this resume", "why": "what on the resume prompts it and what they want to learn", "answer": "how to answer well, naming the real project, job or result from the resume to use (STAR: situation, task, action, result). Don't assume technical details the resume doesn't state: say \"if you used X, explain...\" instead"}],
   "explain": [{"item": "something on this resume to be ready to explain calmly (a gap, a short job, a career change, an overseas degree, a missing requirement)", "frame": "a one-line honest way to talk about it"}],
-  "roles": [{"title": "a job title exactly as job postings in ${r.name} write it", "fit": "strong" | "good" | "stretch", "in_target": true or false, "why": "the resume evidence that qualifies them, quoted or cited", "gap": "what they'd need to show or fix to land this one, or empty", "search": "2-4 words to type into a job board for this role"}]` : ""}
+  "roles": [{"title": "a job title exactly as job postings in ${r.name} write it", "fit": "strong" | "good" | "stretch", "months": number of months of DATED work on the resume in this role's field (count from the job dates; projects and education count as 0), "in_target": true or false, "why": "the resume evidence that qualifies them, quoted or cited", "gap": "what they'd need to show or fix to land this one, or empty", "search": "2-4 words to type into a job board for this role"}]` : ""}
 }
 ${part !== "more" ? `Include all 6 rubric parts. Score bands: 75-100 = "Advance to screen", 55-74 = "Maybe pile", 0-54 = "Pass". The verdict must match the score band.
 Give 3-4 strengths, 3-5 missing items, 0-3 red flags and 2-3 rewrites. Most resumes have no red flags; return [] rather than inventing one. Separators such as | or • in a contact line, and full stops at the end of bullets, are fine for applicant tracking systems: don't flag them.
@@ -1348,7 +1349,7 @@ Reply with only JSON in this exact shape:
   "nice_to_haves": [{"requirement": "...", "status": "met" | "partial" | "missing", "evidence": "..."}],
   "keywords_present": ["ATS keywords from the job that appear in the resume"],
   "keywords_missing": ["important keywords from the job missing from the resume"],
-  "close_the_gaps": ["concrete, honest actions: what to add or reword on the resume, or mention in the cover letter"],
+  "close_the_gaps": ["concrete, honest actions: what to add or reword on the resume, or mention in the cover letter. Examples must not contain made-up numbers"],
   "jd_red_flags": ["warning signs in the job post itself, e.g. vague salary, scope creep, unrealistic asks; empty if none"],
   "interview_questions": ["likely interview questions for this candidate for this role"]
 }
@@ -1418,6 +1419,8 @@ const words = (x) => (str(x).toLowerCase().match(/[a-z0-9]+/g) || []).filter(w =
 const FIT = { strong: 0, good: 1, stretch: 2 };
 function sortRoles(d) {
   d.roles = arr(d.roles).filter(r => str(r.title)).map(r => ({ ...r, fit: str(r.fit).toLowerCase() in FIT ? str(r.fit).toLowerCase() : "stretch" }))
+    // "strong" needs at least a year of dated work in the field, whatever the model says
+    .map(r => r.fit === "strong" && Number.isFinite(Number(r.months)) && r.months !== "" && Number(r.months) < 12 ? { ...r, fit: "good" } : r)
     .map(r => ({ ...r, in_target: r.in_target !== false && str(r.in_target).toLowerCase() !== "false" }))
     .sort((a, b) => (b.in_target - a.in_target) || (FIT[a.fit] - FIT[b.fit])).slice(0, 8);
 }
@@ -1741,7 +1744,7 @@ function renderReview(d) {
   const checks = [...arr(d.ats), ...arr(d.canada)], flagged = checks.filter(x => str(x.status).toLowerCase() !== "pass").length;
   return {
     rail: [
-      h("div", { class: "verdict rv-hero" }, ring(s, "screen odds", t), h("span", { class: "stamp c-" + t }, verdict)),
+      h("div", { class: "verdict rv-hero" }, ring(s, "match", t), h("span", { class: "stamp c-" + t }, verdict)),
       h("p", { class: "headline" }, str(d.headline)),
       d.target_role ? h("div", { class: "meta" }, "Reads as: " + str(d.target_role)) : null,
       best ? h("div", { class: "fact best" }, h("span", { class: "k" }, best.in_target === false ? "Best-fit role" : "Best fit for your goal"), h("b", {}, str(best.title)), h("span", {}, `${best.fit} fit`)) : null,
@@ -1797,8 +1800,20 @@ function reqList(items) {
     h("div", { class: "row-head" }, h("span", { class: "t" }, str(x.requirement)), h("span", { class: "pill " + statusTone(x.status) }, str(x.status))),
     h("span", { class: "d" }, str(x.evidence)))));
 }
+// The match score can't outrun the evidence: meeting half the must-haves tops out around 60, whatever the model says,
+// and a clear seniority gap (a senior role for an early-career candidate) takes it down further.
+function matchScore(d) {
+  const must = arr(d.must_haves); let s = clamp(d.match_score);
+  if (must.length) {
+    const met = must.filter(x => str(x.status).toLowerCase() === "met").length, part = must.filter(x => str(x.status).toLowerCase() === "partial").length;
+    s = Math.min(s, Math.round(35 + 50 * (met + part / 2) / must.length));
+  }
+  const want = str(d.role?.seniority).toLowerCase(), have = str(d.role?.candidate_level).toLowerCase();
+  if (/senior|lead|staff|principal|mid/.test(want) && /junior|early|entry|graduate|new/.test(have) && !/senior|lead/.test(have)) s = Math.min(s, s - 8);
+  return clamp(s);
+}
 function renderMatch(d) {
-  const s = clamp(d.match_score), [verdict, t] = matchBand(s), role = d.role || {};
+  const s = matchScore(d), [verdict, t] = matchBand(s), role = d.role || {};
   const must = arr(d.must_haves), met = must.filter(x => str(x.status).toLowerCase() === "met").length;
   const gapsMust = must.filter(x => str(x.status).toLowerCase() !== "met");
   const kwMissing = arr(d.keywords_missing).map(str).filter(Boolean);
@@ -1935,7 +1950,7 @@ async function run(kind) {
       if (!left) downloadResume(true);
     }
     else if (kind === "review") say(`Done. ${d.score}/100, so my verdict is ${reviewBand(clamp(d.score))[0]}. Your strongest point is "${str(d.top_strength?.title) || "in my notes"}".${d.roles.length ? ` Best-fit role: ${str(d.roles[0].title)}.` : ""} Your plan is below.`);
-    else say(`You're a ${clamp(d.match_score)}% match: ${matchBand(clamp(d.match_score))[0]}. Your plan for this job is below.`);
+    else say(`You're a ${matchScore(d)}% match: ${matchBand(matchScore(d))[0]}. Your plan for this job is below.`);
   } catch (e) {
     mood("idle");
     if (kind !== "letter") delete $("rp-" + kind).dataset.streaming;
