@@ -3,5 +3,5 @@
 set -e
 cd "$(dirname "$0")"
 ./build.sh
-rm -rf site && mkdir site && cp index.html version.txt desk.jpg og.png site/
+rm -rf site && mkdir site && cp index.html version.txt desk.jpg og.png robots.txt sitemap.xml site/
 npx -y wrangler@4 pages deploy site --project-name recruiters-desk --branch main --commit-dirty=true

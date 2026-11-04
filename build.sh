@@ -11,7 +11,8 @@ BUILD=$(date -u +%Y%m%d%H%M%S)
     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">' \
     '<link rel="canonical" href="https://recruiters-desk.pages.dev/">' \
     '<script>if (/\.github\.io$/.test(location.hostname)) location.replace("https://recruiters-desk.pages.dev/" + location.search + location.hash)</script>' \
-    '<meta name="description" content="Free AI recruiter: an honest hiring-manager review of your resume, a job-fit check and a tailored cover letter, for the country you are applying in.">' \
+    '<meta name="description" content="Free AI resume review that reads it like a hiring manager: a score out of 100, ATS checks, the fixes that matter most, the roles you fit, a job-match check and a cover letter for your country. No sign-up.">' \
+    '<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Recruiter'"'"'s Desk","url":"https://recruiters-desk.pages.dev/","description":"Free AI resume review, ATS check, job-match check and cover letter writer for 11 countries.","applicationCategory":"BusinessApplication","operatingSystem":"Any (web browser)","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://opensource.org/licenses/MIT","sameAs":["https://github.com/recruitersdesk/recruiters-desk"]}</script>' \
     '<meta property="og:title" content="Recruiter'"'"'s Desk">' \
     '<meta property="og:description" content="A hiring manager'"'"'s read of your resume, a job-fit check and a cover letter, for the country you'"'"'re applying in. Free, no sign-up, open source.">' \
     '<meta property="og:type" content="website">' \
@@ -22,8 +23,11 @@ BUILD=$(date -u +%Y%m%d%H%M%S)
     '<meta name="twitter:card" content="summary_large_image">' \
     '<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>' \
     '</head>' '<body>'
-  cat app.html
+  # search engines get a descriptive title; the claude.ai artifact keeps the short name
+  sed 's#<title>Recruiter'"'"'s Desk</title>#<title>Free AI Resume Review, ATS Check \& Cover Letter | Recruiter'"'"'s Desk</title>#' app.html
   printf '%s\n' '</body>' '</html>'
 } > index.html
 printf '%s\n' "$BUILD" > version.txt
+# the sitemap tells search engines the page exists and when it last changed
+printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' "  <url><loc>https://recruiters-desk.pages.dev/</loc><lastmod>$(date -u +%Y-%m-%d)</lastmod></url>" '</urlset>' > sitemap.xml
 echo "built index.html ($BUILD)"
