@@ -2,9 +2,11 @@
 
 A free AI recruiter for job seekers. Put your resume on Sam's desk and he reviews it the way a hiring manager would, checks your fit for a job post, writes a tailored cover letter, and can apply his fixes for you.
 
-**Live:** https://meherzankturel.github.io/recruiters-desk/
+**Use it free:** https://recruiters-desk.pages.dev
 
-No subscriptions, no ads, no API keys. Free for the person who runs it and, within a monthly allowance, for the people who use it.
+Most people only need that link. Nothing to install, no sign-up.
+
+No subscriptions, no ads, no API keys. Free for the people who use it and for the person who runs it.
 
 ## What it does
 
@@ -32,9 +34,10 @@ Where norms are mixed (photos in Germany or the Gulf, personal details in India)
 ## Accuracy guards (in code, not left to the AI)
 
 - The score is the sum of the rubric parts, each capped at its maximum.
-- Keywords are sorted into "you have" and "to add" by searching your actual resume text.
-- Rewrites of lines that aren't on your resume are dropped.
+- Keywords are sorted into "you have" and "to add" by searching your actual resume text for whole words ("Java" isn't counted because you know JavaScript).
+- Suggested rewrites are dropped if the original line isn't on your resume, or if the rewrite adds a number your resume doesn't have.
 - When Sam applies fixes, the rewrite is refused if it drops any of your dates or your email. Any number that isn't on your original resume is turned into `[X]`.
+- An AI answer that comes back cut off is treated as a failed run, never shown as a review.
 - A resume or letter PDF can't be downloaded while an `[X]` or `[bracket]` blank is left.
 - PDFs are real text (not images), so applicant tracking systems can read them.
 - Personal-detail checks (date of birth, marital status, ID numbers and so on) follow your region's norms.
@@ -44,33 +47,54 @@ Scores are a guide to readability and fit, not a prediction of any company's app
 
 ## How it stays free
 
-The page is one HTML file with no server of its own.
+The page is one HTML file. The only server code is a small relay (`relay/core.js`) that runs as a Cloudflare Pages Function at `/api/relay`.
 
-- **On the public site,** the AI runs through [Puter.js](https://docs.puter.com/user-pays-model/) and its "user-pays" model. The first time you ask Sam for something, Puter shows a one-click Continue window and creates a free guest account (no email). Your own free monthly allowance covers your use, so the site owner never pays and never holds an AI key.
-- **Automatic backup.** If Puter's window is closed, or Puter asks for a phone or card check, Sam carries on through a small relay on [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/)'s free daily allowance (source in [`relay/`](relay/)). Nothing to set up for the visitor. The backup has a shared daily limit, so if it's used up Sam says so and suggests trying again tomorrow or using Puter.
+- **Main path:** the relay sends Sam's request to [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/) on its free daily allowance. Each visitor gets a fair share per day, and only Sam's own requests are accepted, so it can't be used as a general chatbot.
+- **Backup:** when the day's free allowance is used up, Sam asks you to click **Continue** once and carries on through [Puter.js](https://docs.puter.com/user-pays-model/). Puter's "user-pays" model creates a free guest account (no email or card) whose own free allowance covers your use.
 - **Inside claude.ai,** the same file runs as an artifact and uses the viewer's own Claude account.
+
+Nobody pays, and the site holds no AI key.
 
 ## Privacy
 
-Your resume, job post and Sam's notes are kept only in the open browser tab (sessionStorage): a refresh keeps them, closing the tab clears them. Only the region you pick is remembered between visits. **Start over** clears everything at once.
+- **What stays in your browser.** Your resume, job post and Sam's notes are kept only in the open browser tab (sessionStorage). A refresh keeps them, and closing the tab clears them. Only the region you pick is remembered between visits. **Start over** clears everything at once.
+- **What gets sent, and when.** Text is sent to an AI only when you click one of Sam's actions:
+  - **Usually** it goes through the relay to Cloudflare Workers AI. Cloudflare states it [doesn't use Workers AI content to train models](https://developers.cloudflare.com/workers-ai/platform/data-usage/). The relay stores no resume text. It keeps only a per-visitor count for the day, under a name made from your IP address with a secret key (so the address can't be recovered from it), and deletes it after a day.
+  - **When the backup is in use** it goes through Puter to its AI model (see the privacy policy on [puter.com](https://puter.com)).
+- **Third-party loads.** Opening the page also loads fonts from Google Fonts and the PDF and Word readers from cdnjs (each script is checked against a published fingerprint). Like any website, those services see your IP address.
 
-Text is sent to an AI only when you click one of Sam's actions:
-- through Puter to the AI model (see the privacy policy on [puter.com](https://puter.com)), or
-- through the backup relay to Cloudflare Workers AI. Cloudflare states it [doesn't use Workers AI content to train models](https://developers.cloudflare.com/workers-ai/platform/data-usage/). The relay stores no resume text; it keeps only a per-visitor request count for a day, keyed by a hash of the IP address.
+## Download it and run it on your own computer
 
-## Run it yourself
+You don't need to. The link above is the full tool. If you'd like your own copy (to keep, study or change):
 
-```sh
-./build.sh                 # wraps app.html into index.html
-python3 -m http.server     # then open http://localhost:8000
-```
+1. Download it: on the GitHub page, click the green **Code** button, then **Download ZIP**, and unzip it.
+2. Open a terminal in the unzipped folder:
+   - **Mac:** right-click the folder in Finder, then choose **New Terminal at Folder**.
+   - **Windows:** open the folder, then type `cmd` in the address bar and press Enter.
+3. Start a tiny local web server:
+   - **Mac or Linux:** `python3 -m http.server 8000`
+   - **Windows:** `py -m http.server 8000`
+4. Open **http://localhost:8000** in your browser.
 
-Puter needs a real web address (http://localhost works); it won't sign in from a `file://` page.
+Your copy uses the same free relay (it accepts copies running on `localhost`), with Puter as the backup. Double-clicking `index.html` isn't enough, because the AI services need a real web address.
+
+If you change the page, edit `app.html` (not `index.html`), then run `./build.sh` to rebuild `index.html`.
+
+## Project layout
+
+| File | What it is |
+|---|---|
+| `app.html` | The whole app: page, styles and script. It also runs as a claude.ai artifact. |
+| `build.sh` | Wraps `app.html` into `index.html`, the full web page. |
+| `relay/core.js` | The free AI relay: visitor limit, request checks, call to Workers AI. |
+| `functions/api/relay.js` | Serves the relay at `/api/relay` on Cloudflare Pages. |
+| `deploy.sh`, `wrangler.toml` | Publish the site and relay to Cloudflare Pages (owner only). |
+| `tests/` | Headless-Chrome tests with the AI mocked, plus unit tests for the relay. |
 
 ## Tests
 
 ```sh
-./tests/run.sh             # headless Chrome; the AI is mocked, so no network calls or usage
+./tests/run.sh             # headless Chrome (the AI is mocked, so no usage) + relay unit tests in Node
 ```
 
 ## Licence

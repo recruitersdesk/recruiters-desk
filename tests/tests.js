@@ -125,6 +125,12 @@ async function pdfText(blob) {
     const rt = rs ? [...rs.querySelectorAll(".item .t")].map(x => x.textContent) : [];
     ok("roles: target roles first (by fit), fallback last, empty dropped", rt.join("|") === "Junior AI Engineer|Machine Learning Engineer|Bogus Role|Full Stack DeveloperFallback", rt.join("|"));
     ok("roles: unknown fit shown as stretch", rs && /stretch fit/.test(rs.querySelectorAll(".item")[2].textContent), rs && rs.textContent);
+    const t0 = rv.querySelector('.subtab[aria-selected="true"]');
+    t0.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    const t1 = rv.querySelector('.subtab[aria-selected="true"]');
+    ok("tabs: arrow keys move to the next tab; only the selected one is in the Tab order", t1 !== t0 && document.activeElement === t1 && t1.tabIndex === 0 && t0.tabIndex === -1 && $(t1.getAttribute("aria-controls")).getAttribute("aria-labelledby") === t1.id);
+    t0.click();
+    ok("a11y: text boxes are named, panels are labelled by their tab, page has a main landmark", $("resume").getAttribute("aria-label") && $("jd").getAttribute("aria-label") && $("rp-review").getAttribute("aria-labelledby") === "rt-review" && document.querySelector("main#main"));
     ok("best card says it's for your goal", $("rp-review").querySelector(".fact.best .k").textContent === "Best fit for your goal");
     const ct = $("rp-review").querySelector('.subtab[data-key="certs"]');
     ok("certs: tab shows only real catalog entries", ct && ct.textContent.includes("Certifications") && ct.textContent.includes("1"), ct && ct.textContent);

@@ -1,8 +1,8 @@
 // Recruiter's Desk relay: the page's main AI path (Puter is the backup when this is busy).
 // Runs on Cloudflare Workers AI's free daily allowance; Cloudflare says it doesn't use the content to train models.
 // The relay stores no resume text: only a per-visitor counter (a keyed hash of the IP, deleted after a day).
-// the site itself, the old GitHub Pages address (it now forwards to the site), and copies people download and run on their own computer
-const ORIGINS = ["https://recruiters-desk.pages.dev", "https://meherzankturel.github.io"];
+// the site itself, and copies people download and run on their own computer
+const ORIGINS = ["https://recruiters-desk.pages.dev"];
 const LOCAL = /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/;
 const allowed = (origin) => ORIGINS.includes(origin) || LOCAL.test(origin);
 const MODEL = "@cf/openai/gpt-oss-120b";
@@ -60,7 +60,7 @@ function textOf(r) {
   return "";
 }
 
-// shared by the Pages Function (recruiters-desk.pages.dev/api/relay) and the original Worker
+// served by the Pages Function at recruiters-desk.pages.dev/api/relay
 export async function handle(req, env) {
   const origin = req.headers.get("Origin") || "";
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });

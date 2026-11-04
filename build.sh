@@ -1,5 +1,6 @@
 #!/bin/sh
-# app.html is the page body (it also runs as a claude.ai artifact); index.html wraps it into a full web page for GitHub Pages.
+# app.html is the page body (it also runs as a claude.ai artifact); index.html wraps it into a full web page.
+# A copy still served from GitHub Pages forwards visitors to the site's own address.
 set -e
 cd "$(dirname "$0")"
 BUILD=$(date -u +%Y%m%d%H%M%S)
@@ -8,6 +9,8 @@ BUILD=$(date -u +%Y%m%d%H%M%S)
     '<meta charset="utf-8">' \
     "<meta name=\"build\" content=\"$BUILD\">" \
     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">' \
+    '<link rel="canonical" href="https://recruiters-desk.pages.dev/">' \
+    '<script>if (/\.github\.io$/.test(location.hostname)) location.replace("https://recruiters-desk.pages.dev/" + location.search + location.hash)</script>' \
     '<meta name="description" content="Free AI recruiter: an honest hiring-manager review of your resume, a job-fit check and a tailored cover letter, for the country you are applying in.">' \
     '<meta property="og:title" content="Recruiter'"'"'s Desk">' \
     '<meta property="og:description" content="Free, open-source AI resume review, job-fit check and cover letters. No subscriptions.">' \

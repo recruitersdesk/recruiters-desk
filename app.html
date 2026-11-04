@@ -11,7 +11,7 @@
   --paper: #ffffff;
   --ink: #18202b;
   --muted: #5d6776;
-  --faint: #8a93a1;
+  --faint: #667080;
   --rule: #e0e4ea;
   --accent: #2449c9;
   --accent-soft: #e8edfd;
@@ -36,7 +36,10 @@ body {
   padding-block: 14px 32px; margin: 0;
 }
 /* width follows the screen height too, so the desk photo + Sam's line always fit without scrolling */
+@media (pointer: coarse) { .btn-link { min-height: 32px; display: inline-flex; align-items: center; } }
 .wrap { max-width: 1640px; margin: 0 auto; display: grid; gap: 14px; }
+.main { display: grid; gap: 14px; min-width: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- top bar ---------- */
 .bar-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -492,6 +495,7 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     <button class="btn-soft" id="tryExample" type="button">Try an example</button>
   </header>
 
+  <main id="main" class="main">
   <nav class="journey" id="journey" aria-label="Your progress">
     <button type="button" data-go="resume"><span class="dot" aria-hidden="true"></span><span class="lbl">Add your resume</span></button><span class="sep" aria-hidden="true"></span>
     <button type="button" data-go="review"><span class="dot" aria-hidden="true"></span><span class="lbl">Sam's review</span></button><span class="sep" aria-hidden="true"></span>
@@ -571,12 +575,12 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
         </div>
         <details id="pasteBox">
           <summary id="pasteSummary">Paste the text instead</summary>
-          <textarea id="resume" placeholder="Paste your resume text here"></textarea>
+          <textarea id="resume" aria-label="Resume text" placeholder="Paste your resume text here"></textarea>
         </details>
       </div>
       <div class="step" id="step2">
         <div class="step-head"><span class="n"><b>2</b></span><h2>The job post</h2><span class="opt">For fit + letter</span></div>
-        <textarea id="jd" placeholder="Paste the full job description: title, responsibilities, requirements"></textarea>
+        <textarea id="jd" aria-label="Job post text" placeholder="Paste the full job description: title, responsibilities, requirements"></textarea>
         <div class="example-note" id="exampleNote" hidden>
           <span>Example loaded: a made-up candidate and job.</span>
           <button class="btn-link" id="clearExample" type="button">Clear it</button>
@@ -614,9 +618,9 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
         </div>
       </div>
       <div class="stale" id="stale" hidden>Your resume or job post changed after these notes were written. Run it again to update them.</div>
-      <div class="rpanel" role="tabpanel" id="rp-review" hidden></div>
-      <div class="rpanel" role="tabpanel" id="rp-match" hidden></div>
-      <div class="rpanel" role="tabpanel" id="rp-letter" hidden>
+      <div class="rpanel" role="tabpanel" id="rp-review" aria-labelledby="rt-review" tabindex="0" hidden></div>
+      <div class="rpanel" role="tabpanel" id="rp-match" aria-labelledby="rt-match" tabindex="0" hidden></div>
+      <div class="rpanel" role="tabpanel" id="rp-letter" aria-labelledby="rt-letter" tabindex="0" hidden>
         <div class="plan-wrap letter-wrap">
           <div class="plan-head"><h3>Your cover letter</h3><p>Written from your real experience for this job. Click into it to edit.</p></div>
           <div class="letter-tools">
@@ -655,6 +659,7 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       </div>
     </section>
   </div>
+  </main>
 
   <footer class="foot">
     <span>Free and open source. No subscriptions, no ads.</span>
@@ -664,10 +669,10 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 </div>
 <div class="dropzone" id="dropzone" hidden><div>Let go to hand your resume to Sam</div></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js" integrity="sha512-BbrZ76UNZq5BhH7LL7pn9A4TKQpQeNCHOo65/akfelcIBbcVvYWOFQKPXIrykE3qZxYjmDX573oa4Ywsc7rpTw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha512-q+4liFwdPC/bNdhUpZx6aXDx/h77yEQtn4I1slHydcbZK34nLaR3cAeYSJshoxIOq3mjEf7xJE8YWIUHMn+oCQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js" integrity="sha512-sG5Q7boJL+ft/weuz6Mmi9XBD+bEzE9AI2FMP4YMFxp3FpTFUQSQQm5K5cSgJCyed6bWs3W8f8h0lp36lHXhQA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 /* Hiring norms per region. Kept conservative: where a norm is mixed (e.g. photos in Germany, personal details in India),
@@ -827,7 +832,7 @@ We move fast and wear many hats. Salary: competitive.`;
 /* ---------- Sam ---------- */
 function say(text, typing) {
   const p = $("say");
-  if (typing) p.innerHTML = '<span class="typing" aria-label="Sam is thinking"><span></span><span></span><span></span></span>';
+  if (typing) p.innerHTML = '<span class="sr-only">Sam is thinking</span><span class="typing" aria-hidden="true"><span></span><span></span><span></span></span>';
   else p.textContent = text;
 }
 function mood(state, padText) { scene.dataset.state = state; if (padText) $("padMsg").textContent = padText; }
@@ -999,7 +1004,7 @@ $("replace").onclick = () => $("file2").click();
 async function readFile(file) {
   const name = file.name.toLowerCase();
   if (name.endsWith(".pdf")) {
-    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer(), isEvalSupported: false }).promise;
     const pages = [];
     for (let i = 1; i <= pdf.numPages; i++) {
       const tc = await (await pdf.getPage(i)).getTextContent();
@@ -1238,13 +1243,20 @@ const kinds = ["review", "match", "letter"];
 function showTab(kind) {
   $("results").hidden = false;
   kinds.forEach(k => {
-    $("rt-" + k).setAttribute("aria-selected", String(k === kind));
+    $("rt-" + k).setAttribute("aria-selected", String(k === kind)); $("rt-" + k).tabIndex = k === kind ? 0 : -1;
     $("rp-" + k).hidden = k !== kind;
   });
   $("rt-" + kind).hidden = false;
   refreshStale();
 }
 kinds.forEach(k => $("rt-" + k).onclick = () => showTab(k));
+// tabs work from the keyboard: arrow keys, Home and End move between the visible tabs of a row
+document.addEventListener("keydown", (e) => {
+  const tab = e.target.closest?.('[role="tab"]'); if (!tab || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+  const row = [...tab.closest('[role="tablist"]').querySelectorAll('[role="tab"]')].filter(t => !t.hidden), i = row.indexOf(tab);
+  const next = row[e.key === "Home" ? 0 : e.key === "End" ? row.length - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + row.length) % row.length];
+  e.preventDefault(); next.focus(); next.click();
+});
 
 /* ---------- prompts ---------- */
 const ATS = `ATS (applicant tracking system) standards to apply:
@@ -2104,13 +2116,13 @@ function loadingBlock(text) {
     clock.textContent = Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
     stage.textContent = STAGES[Math.min(STAGES.length - 1, Math.floor(sec / 20))] + "…";
   }, 1000);
-  return h("div", { class: "loading" }, h("div", { class: "bar" }), h("span", { class: "muted" }, text),
+  return h("div", { class: "loading", role: "status" }, h("div", { class: "bar" }), h("span", { class: "muted" }, text),
     h("span", { class: "progress-line" }, clock, stage), cancel);
 }
 function errorBlock(e, kind) {
   const retry = h("button", { class: e?.code === "needs_click" ? "btn-primary" : "btn-ghost", type: "button" }, e?.code === "needs_click" ? "Continue" : "Try again");
   retry.onclick = () => run(kind);
-  return h("div", { class: "errbox" }, h("span", {}, errMsg(e)), retry, h("span", { class: "hint" }, "Error code: " + str(e?.code || "unknown") + (lastPath && !inClaude ? ` (via ${lastPath})` : "")));
+  return h("div", { class: "errbox", role: "alert" }, h("span", {}, errMsg(e)), retry, h("span", { class: "hint" }, "Error code: " + str(e?.code || "unknown") + (lastPath && !inClaude ? ` (via ${lastPath})` : "")));
 }
 // the resume review judges the resume on its own; only the fit check and the letter depend on the job post
 const inputKey = (kind) => resumeEl.value.trim() + "\u0000" + (kind === "review" ? "" : jdEl.value.trim()) + "\u0000" + (kind === "review" ? targetEl.value.trim() : "") + "\u0000" + $("region").value;
@@ -2325,14 +2337,14 @@ function paint(kind, d) {
   const { rail, tabs } = kind === "review" ? renderReview(d) : renderMatch(d), list = tabs.filter(Boolean);
   if (!list.some(x => x.key === subTab[kind])) subTab[kind] = list[0].key;
   const bar = h("div", { class: "subtabs", role: "tablist", "aria-label": "Sam's notes sections" });
-  const panes = list.map(x => h("div", { class: "subpane", role: "tabpanel", "data-key": x.key }, ...x.body.filter(Boolean)));
+  const panes = list.map(x => h("div", { class: "subpane", role: "tabpanel", "data-key": x.key, id: `sp-${kind}-${x.key}`, "aria-labelledby": `st-${kind}-${x.key}`, tabindex: "0" }, ...x.body.filter(Boolean)));
   const pick = (key) => {
     subTab[kind] = key;
-    bar.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.key === key)));
+    bar.querySelectorAll("button").forEach(b => { b.setAttribute("aria-selected", String(b.dataset.key === key)); b.tabIndex = b.dataset.key === key ? 0 : -1; });
     panes.forEach(p => p.hidden = p.dataset.key !== key);
   };
   list.forEach(x => {
-    const b = h("button", { class: "subtab", type: "button", role: "tab", "data-key": x.key }, x.label, x.count ? h("span", { class: "count" }, String(x.count)) : null);
+    const b = h("button", { class: "subtab", type: "button", role: "tab", "data-key": x.key, id: `st-${kind}-${x.key}`, "aria-controls": `sp-${kind}-${x.key}` }, x.label, x.count ? h("span", { class: "count" }, String(x.count)) : null);
     b.onclick = () => pick(x.key);
     bar.append(b);
   });
