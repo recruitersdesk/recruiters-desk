@@ -17,8 +17,8 @@ BUILD=$(date -u +%Y%m%d%H%M%S)
     '<meta property="og:type" content="website">' \
     '<meta property="og:url" content="https://recruiters-desk.pages.dev/">' \
     '<meta property="og:image" content="https://recruiters-desk.pages.dev/og.png">' \
-    '<meta property="og:image:width" content="1200">' '<meta property="og:image:height" content="630">' \
-    '<meta property="og:image:alt" content="Recruiter'"'"'s Desk: an honest resume review, free">' \
+    '<meta property="og:image:width" content="1280">' '<meta property="og:image:height" content="640">' \
+    '<meta property="og:image:alt" content="Recruiter'"'"'s Desk: see your resume the way a hiring manager does">' \
     '<meta name="twitter:card" content="summary_large_image">' \
     '<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>' \
     '</head>' '<body>'
