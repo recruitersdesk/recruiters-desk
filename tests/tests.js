@@ -107,7 +107,8 @@ async function pdfText(blob) {
     __fail = "rate_limited"; $("rt-review").click(); $("go-review").click(); await wait(400);
     ok("error: plain message + Try again", $("rp-review").textContent.includes("usage limit") && !!$("rp-review").querySelector(".errbox button"));
     ok("error: controls re-enabled", !running && !$("go-review").disabled && scene.dataset.state === "idle");
-    ok("error: code shown", $("rp-review").textContent.includes("Error code: rate_limited"));
+    ok("error: plain words only; the code is kept out of sight for bug reports", !/error code|rate_limited|_/i.test($("rp-review").textContent) && $("rp-review").querySelector(".errbox").dataset.code.startsWith("rate_limited"), $("rp-review").textContent);
+    ok("error messages contain no technical words", Object.values(ERR).every(m => !/json|api\b|upstream|request was|_|js\.|null|undefined/i.test(m)), Object.values(ERR).filter(m => /json|api\b|upstream|request was|_|js\.|null|undefined/i.test(m)).join(" | "));
     __fail = "upstream_error"; $("go-review").click(); await wait(400);
     ok("error: dropped connection explained", $("rp-review").textContent.includes("connection to Claude dropped"), $("rp-review").textContent);
     __fail = null;

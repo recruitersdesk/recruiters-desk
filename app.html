@@ -1215,15 +1215,15 @@ const ERR = {
   popup_blocked: "Your browser blocked the small sign-in window that gives you a free guest account. Allow pop-ups for this site, then click Try again.",
   auth_closed: "The Puter window closed before it finished. Puter is the free service that runs me. Click Try again to open it.",
   verify: "Puter, the free service I'm using right now, asked for an extra check (a phone number). That's Puter's anti-spam rule, not this site's. Try again later.",
-  no_ai: "I couldn't reach the free AI service. Check your connection (and allow js.puter.com if an ad blocker is on), then reload the page.",
+  no_ai: "I couldn't reach the free AI service. Check your internet connection. If you use an ad blocker, turn it off for this site, then reload the page.",
   backup_busy: "My free backup has reached today's limit. Try again tomorrow, or click Try again and choose Continue in the Puter window.",
   session_expired: "Your Claude session expired. Sign in again at claude.ai, then retry.",
   prompt_too_large: "That's more text than I can read at once. Trim the resume or job post and try again.",
-  invalid_json: "My notes came out garbled. Try again.",
+  invalid_json: "My notes came out incomplete, so I didn't show them. Please try again.",
   refused: "I can't help with that text. Check what you pasted and try again.",
   empty_completion: "I came back with nothing to say, which shouldn't happen. Try again.",
   upstream_error: window.claude?.use ? "The connection to Claude dropped before I finished. Try again; the next try uses a faster model." : "The connection to the AI dropped before I finished. Try again.",
-  invalid_request: "Something in this page's request was wrong. Try again; if it keeps happening, it's a bug in the page.",
+  invalid_request: "Something went wrong on my side. Please try again. If it keeps happening, let us know on GitHub.",
   capability_removed: "This Claude app is too old for this page. Update or reload Claude, then try again.",
   capability_disabled: "Claude can't run in this view. Open the page at claude.ai in a browser.",
 };
@@ -2130,7 +2130,8 @@ function loadingBlock(text) {
 function errorBlock(e, kind) {
   const retry = h("button", { class: e?.code === "needs_click" ? "btn-primary" : "btn-ghost", type: "button" }, e?.code === "needs_click" ? "Continue" : "Try again");
   retry.onclick = () => run(kind);
-  return h("div", { class: "errbox", role: "alert" }, h("span", {}, errMsg(e)), retry, h("span", { class: "hint" }, "Error code: " + str(e?.code || "unknown") + (lastPath && !inClaude ? ` (via ${lastPath})` : "")));
+  // people see plain words only; the technical code stays on the element for anyone reporting a bug
+  return h("div", { class: "errbox", role: "alert", "data-code": str(e?.code || "unknown") + (lastPath && !inClaude ? " via " + lastPath : "") }, h("span", {}, errMsg(e)), retry);
 }
 // the resume review judges the resume on its own; only the fit check and the letter depend on the job post
 const inputKey = (kind) => resumeEl.value.trim() + "\u0000" + (kind === "review" ? "" : jdEl.value.trim()) + "\u0000" + (kind === "review" ? targetEl.value.trim() : "") + "\u0000" + $("region").value;
