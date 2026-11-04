@@ -196,7 +196,7 @@ async function pdfText(blob) {
     $("go-review").click(); await wait(400);
     const ukIn = __calls.at(-1).input;
     ok("UK: prompt uses UK rules and CV", ukIn.includes("thousands of CVs in the United Kingdom") && ukIn.includes("Equality Act 2010") && ukIn.includes("British (colour") && !ukIn.includes("Social Insurance"));
-    ok("UK: job links go to UK boards", $("rp-review").querySelector('a[href^="https://uk.indeed.com/jobs?q="]') && $("rp-review").querySelector('a[href^="https://findajob.dwp.gov.uk/search?q="]') && !$("rp-review").querySelector('a[href*="jobbank"]'));
+    ok("UK: job links go to UK boards", $("rp-review").querySelector('a[href^="https://uk.indeed.com/jobs?q="]') && $("rp-review").querySelector('a[href="https://www.reed.co.uk/jobs/junior-ai-engineer-jobs"]') && !$("rp-review").querySelector('a[href*="jobbank"]'));
     ok("UK: section named for the region", [...$("rp-review").querySelectorAll(".sec h4")].some(x => x.textContent.startsWith("United Kingdom CV standard")));
     const probe = (id, text) => { const d = { canada: [] }; regionChecks(d, text, REGIONS[id]); return d.canada; };
     const pd = "Nationality: Indian\nDate of Birth: 1999-02-02\nMarital status: Single";
@@ -207,6 +207,10 @@ async function pdfText(blob) {
     ok("ID numbers always flagged", probe("us", "SSN: 123-45-6789")[0]?.check === "ID number" && probe("sg", "NRIC: S1234567D")[0]?.check === "ID number");
     resumeEl.value = keep2; fire(resumeEl);
     $("go-letter").click(); await wait(400);
+    const au = { roles: [{ title: "Junior AI Engineer", fit: "good", search: "junior AI engineer" }] }; sortRoles(au);
+    const auLinks = [...jobLinks(au.roles[0], REGIONS.au).querySelectorAll("a")].map(a => a.href);
+    ok("keyword-page boards get a slug (SEEK)", auLinks[0] === "https://www.seek.com.au/junior-ai-engineer-jobs" && auLinks[1].startsWith("https://www.linkedin.com/jobs/search/?location=Australia&keywords=junior%20AI%20engineer"), auLinks.join(" "));
+    ok("US letters have no subject line; Canada keeps Re:", !LETTER_PROMPT("r", "j", "professional", "short", REGIONS.us).includes('"Re: Application') && LETTER_PROMPT("r", "j", "professional", "short", REGIONS.ca).includes('"Re: Application'));
     ok("UK letter: British closing rules", __calls.at(-1).input.includes("Yours faithfully") && __calls.at(-1).input.includes("en-GB") === false && /\d{1,2} \w+ 20\d\d/.test(__calls.at(-1).input));
     $("region").value = "ca"; $("region").dispatchEvent(new Event("change"));
     // a real upload starts the review by itself

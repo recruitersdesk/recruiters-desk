@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="20261104150005">
+<meta name="build" content="20261104150140">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Free AI recruiter: an honest hiring-manager review of your resume, a job-fit check and a tailored cover letter, for the country you are applying in.">
 <meta property="og:title" content="Recruiter's Desk">
@@ -681,7 +681,7 @@ const REGIONS = {
     idName: "Social Insurance Number (SIN)", idRe: /\b(social insurance|SIN\s*(no|number|#)?\s*[:\-]?\s*\d{3}[\s-]?\d{3}[\s-]?\d{3})\b/i,
     personal: { birth: "fail", age: "fail", marital: "fail", nationality: "fail", religion: "fail", gender: "fail" }, refs: "omit", maxWords: 1100,
     length: "1 page for students and new graduates, 2 pages at most for most roles; longer only for academic CVs or very senior roles",
-    personalRule: "Leave out details Canadian human rights law keeps out of hiring: photo, date of birth or age, marital or family status, gender, religion, nationality, health and Social Insurance Number (SIN).",
+    personalRule: "Leave out details Canadian human rights law keeps employers from asking for: photo, date of birth or age, marital or family status, gender, religion, nationality, health and Social Insurance Number (SIN).",
     work: '"Eligible to work in Canada", "Canadian citizen" or "Permanent resident"', extra: "Volunteer work counts. Foreign credentials can note a Canadian equivalency (e.g. WES) only if the resume shows education from outside Canada.",
     reqs: "eligibility to work in Canada, security clearance, French or bilingual, a provincial licence or designation such as P.Eng., CPA or RN",
     letter: { open: '"Dear <name>," if the post names a contact, otherwise "Dear Hiring Manager,". Never "To Whom It May Concern" or "Dear Sir/Madam"', close: '"Sincerely,"', subject: true },
@@ -690,9 +690,9 @@ const REGIONS = {
     idName: "Social Security number", idRe: /\b(social security|SSN\s*(no|number|#)?\s*[:\-]?\s*\d{3}[\s-]?\d{2}[\s-]?\d{4})\b/i,
     personal: { birth: "fail", age: "fail", marital: "fail", nationality: "fail", religion: "fail", gender: "fail" }, refs: "omit", maxWords: 1100,
     length: "1 page for students and anyone with under about 10 years of experience; 2 pages for longer careers",
-    personalRule: "Leave out photo, date of birth or age, marital or family status, gender, religion, nationality and Social Security number; US employers avoid them because of equal-employment law.",
+    personalRule: "Leave out photo, date of birth or age, marital or family status, gender, religion, nationality and Social Security number; equal-employment law stops employers asking for them, so US employers prefer not to see them. Federal (USAJOBS) resumes follow their own, more detailed format.",
     work: '"Authorized to work in the US" or "US citizen"', extra: "", reqs: "work authorization or visa sponsorship, US citizenship or a security clearance, a state licence or certification",
-    letter: { open: '"Dear <name>," if the post names a contact, otherwise "Dear Hiring Manager,". Never "To Whom It May Concern"', close: '"Sincerely,"', subject: true },
+    letter: { open: '"Dear <name>," if the post names a contact, otherwise "Dear Hiring Manager,". Never "To Whom It May Concern"', close: '"Sincerely,"', subject: false },
     boards: [["LinkedIn", "https://www.linkedin.com/jobs/search/?location=United%20States&keywords="], ["Indeed", "https://www.indeed.com/jobs?q="], ["USAJOBS", "https://www.usajobs.gov/Search/Results?k="]] },
   uk: { name: "the United Kingdom", label: "United Kingdom", doc: "CV", spelling: "British (colour, centre, organise, programme)", locale: "en-GB", paper: "a4", place: "town or city",
     idName: "National Insurance number", idRe: /\b(national insurance|NI\s*(no|number)\s*[:\-]?\s*[A-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-D])\b/i,
@@ -700,63 +700,63 @@ const REGIONS = {
     length: "2 pages of A4 for most roles; 1 page for school leavers",
     personalRule: "Leave out photo, date of birth or age, marital status, religion and gender; UK employers avoid them under the Equality Act 2010. Nationality isn't needed; state right to work instead if relevant.",
     work: '"Full right to work in the UK"', extra: "A short personal profile at the top is standard.", reqs: "right to work in the UK or visa sponsorship, security vetting (e.g. SC or DV), a professional registration",
-    letter: { open: '"Dear Mr/Ms <surname>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Yours sincerely," after a named contact, or "Yours faithfully," after "Dear Hiring Manager,"', subject: false },
-    boards: [["LinkedIn", "https://www.linkedin.com/jobs/search/?location=United%20Kingdom&keywords="], ["Indeed", "https://uk.indeed.com/jobs?q="], ["Find a job", "https://findajob.dwp.gov.uk/search?q="]] },
+    letter: { open: '"Dear Mr/Ms <surname>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Yours sincerely," after a named contact; after "Dear Hiring Manager," the traditional close is "Yours faithfully," (many now use "Yours sincerely,")', subject: false },
+    boards: [["LinkedIn", "https://www.linkedin.com/jobs/search/?location=United%20Kingdom&keywords="], ["Indeed", "https://uk.indeed.com/jobs?q="], ["Reed", "https://www.reed.co.uk/jobs/{slug}-jobs"]] },
   ie: { name: "Ireland", doc: "CV", spelling: "Irish/British (colour, centre, organise)", locale: "en-IE", paper: "a4", place: "town or city",
     idName: "PPS number", idRe: /\b(PPS\s*(no|number)?\s*[:\-]?\s*\d{7}[A-W]{1,2})\b/i,
     personal: { birth: "fail", age: "fail", marital: "fail", nationality: "warn", religion: "fail", gender: "fail" }, refs: "omit", maxWords: 1100,
-    length: "2 pages for most roles", personalRule: "Leave out photo, date of birth or age, marital or family status, religion and gender, in line with the Employment Equality Acts. State work permission instead of nationality if relevant.",
+    length: "2 pages for most roles", personalRule: "Leave out photo, date of birth or age, civil or family status, religion and gender: the Employment Equality Acts stop employers asking for them. State work permission instead of nationality if relevant.",
     work: '"Stamp 4" or "EU citizen, full right to work in Ireland"', extra: "", reqs: "right to work in Ireland or an employment permit, Garda vetting, a professional registration",
-    letter: { open: '"Dear Mr/Ms <surname>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Yours sincerely," after a named contact, or "Yours faithfully," after "Dear Hiring Manager,"', subject: false },
+    letter: { open: '"Dear Mr/Ms <surname>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Yours sincerely," after a named contact; after "Dear Hiring Manager," the traditional close is "Yours faithfully," (many now use "Yours sincerely,")', subject: false },
     boards: [["LinkedIn", "https://www.linkedin.com/jobs/search/?location=Ireland&keywords="], ["Indeed", "https://ie.indeed.com/jobs?q="]] },
   au: { name: "Australia", doc: "resume", spelling: "Australian (colour, centre, organise)", locale: "en-AU", paper: "a4", place: "suburb or city and state",
     idName: "Tax File Number", idRe: /\b(tax file number|TFN\s*[:\-]?\s*\d{3}\s?\d{3}\s?\d{3})\b/i,
     personal: { birth: "fail", age: "fail", marital: "fail", nationality: "warn", religion: "fail", gender: "fail" }, refs: "allowed", maxWords: 1500,
     length: "2-3 pages for most roles; up to 4 for senior careers", personalRule: "Leave out photo, date of birth or age, marital status, religion and gender. State working rights or visa status instead of nationality.",
-    work: '"Australian citizen" or "Full working rights"', extra: "A referees section (2 referees, or \"Referees available on request\") is normal in Australia.", reqs: "working rights or visa sponsorship, a police check or Working with Children Check, a state licence or registration",
+    work: '"Australian citizen" or "Full working rights"', extra: "Listing 2 referees, or writing \"Referees available on request\", is normal in Australia.", reqs: "working rights or visa sponsorship, a police check or Working with Children Check, a state licence or registration",
     letter: { open: '"Dear <name>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Kind regards," or "Yours sincerely,"', subject: false },
-    boards: [["SEEK", "https://www.seek.com.au/jobs?keywords="], ["LinkedIn", "https://www.linkedin.com/jobs/search/?location=Australia&keywords="], ["Indeed", "https://au.indeed.com/jobs?q="]] },
+    boards: [["SEEK", "https://www.seek.com.au/{slug}-jobs"], ["LinkedIn", "https://www.linkedin.com/jobs/search/?location=Australia&keywords="], ["Indeed", "https://au.indeed.com/jobs?q="]] },
   nz: { name: "New Zealand", doc: "CV", spelling: "New Zealand (colour, centre, organise)", locale: "en-NZ", paper: "a4", place: "city",
     idName: "IRD number", idRe: /\b(IRD\s*(no|number)\s*[:\-]?\s*\d{2,3}[\s-]?\d{3}[\s-]?\d{3})\b/i,
     personal: { birth: "fail", age: "fail", marital: "fail", nationality: "warn", religion: "fail", gender: "fail" }, refs: "allowed", maxWords: 1500,
     length: "2-3 pages for most roles", personalRule: "Leave out photo, date of birth or age, marital status, religion and gender. State work rights or visa status instead of nationality.",
     work: '"NZ citizen" or "Open work visa"', extra: "Referees are normally listed or offered on request.", reqs: "work rights or visa sponsorship, a police vet, a professional registration",
     letter: { open: '"Dear <name>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Kind regards," or "Yours sincerely,"', subject: false },
-    boards: [["SEEK", "https://www.seek.co.nz/jobs?keywords="], ["LinkedIn", "https://www.linkedin.com/jobs/search/?location=New%20Zealand&keywords="]] },
+    boards: [["SEEK", "https://www.seek.co.nz/{slug}-jobs"], ["LinkedIn", "https://www.linkedin.com/jobs/search/?location=New%20Zealand&keywords="]] },
   in: { name: "India", doc: "resume", spelling: "Indian English, British spelling (colour, organise)", locale: "en-IN", paper: "a4", place: "city and state",
     idName: "Aadhaar or PAN number", idRe: /\b(aadhaar|aadhar|PAN\s*(no|number|card)?\s*[:\-]?\s*[A-Z]{5}\d{4}[A-Z])\b/i,
     personal: { birth: "warn", age: "warn", marital: "warn", nationality: null, religion: "warn", gender: "warn" }, refs: "omit", maxWords: 1100,
-    length: "1 page for freshers, 2 pages for experienced roles", personalRule: "Date of birth, marital status, gender and a photo are still seen on Indian resumes, but most companies, especially multinationals and tech firms, now prefer them left off. Never include religion, caste or ID numbers.",
+    length: "1 page for freshers, 2 pages for experienced roles", personalRule: "Date of birth, marital status, gender and a photo are still seen on Indian resumes, but most companies, especially multinationals and tech firms, now prefer them left off. Never include religion, caste or ID numbers. For government or PSU jobs, follow the format the job notification asks for.",
     work: "", extra: "Freshers usually list CGPA or percentage and graduation year. Stating notice period is common for experienced candidates.", reqs: "notice period, location or relocation, specific degrees or CGPA cut-offs",
     letter: { open: '"Dear <name>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Sincerely," or "Regards,"', subject: true },
-    boards: [["Naukri", "https://www.naukri.com/jobs-in-india?k="], ["LinkedIn", "https://www.linkedin.com/jobs/search/?location=India&keywords="], ["Indeed", "https://in.indeed.com/jobs?q="]] },
+    boards: [["Naukri", "https://www.naukri.com/{slug}-jobs"], ["LinkedIn", "https://www.linkedin.com/jobs/search/?location=India&keywords="], ["Indeed", "https://in.indeed.com/jobs?q="]] },
   de: { name: "Germany", doc: "CV (Lebenslauf)", spelling: "consistent British or American English, or German if the job post is in German", locale: "en-GB", paper: "a4", place: "city",
     idName: "tax ID or social security number", idRe: /\b(steuer-?id|sozialversicherungsnummer|tax id\s*[:\-]?\s*\d{11})\b/i,
     personal: { birth: null, age: null, marital: "warn", nationality: null, religion: "fail", gender: null }, refs: "omit", maxWords: 1100,
-    length: "1-2 pages, tabular and reverse-chronological, with month/year dates (MM/YYYY)", personalRule: "A photo, date of birth and nationality are optional in Germany: still common, but no longer expected, and many international companies prefer none. Marital status is outdated. Never include religion.",
+    length: "1-2 pages, tabular and reverse-chronological, with month/year dates (MM/YYYY)", personalRule: "A photo is optional in Germany and employers can't require one; many international companies prefer none. Date and place of birth and nationality are common but optional. Marital status and children aren't needed. Never include religion.",
     work: '"EU citizen" or "Work permit / Blue Card holder"', extra: "Every gap of more than a few months is usually explained in one line. A signature and date at the end are traditional but optional.", reqs: "German language level (e.g. B2/C1), work permit or EU Blue Card eligibility, recognised degrees",
     letter: { open: 'in English "Dear Ms/Mr <surname>," if the post names a contact, otherwise "Dear Hiring Team,"; in German "Sehr geehrte Frau/Sehr geehrter Herr <Nachname>," or "Sehr geehrte Damen und Herren,"', close: '"Kind regards," in English or "Mit freundlichen Grüßen" in German', subject: true },
     boards: [["LinkedIn", "https://www.linkedin.com/jobs/search/?location=Germany&keywords="], ["Indeed", "https://de.indeed.com/jobs?q="]] },
   ae: { name: "the UAE and Gulf states", label: "UAE & Gulf", doc: "CV", spelling: "British (colour, organise)", locale: "en-GB", paper: "a4", place: "city and country",
     idName: "Emirates ID or passport number", idRe: /\b(emirates id\s*[:\-]?\s*784[-\s]?\d{4}[-\s]?\d{7}[-\s]?\d|passport\s*(no|number)\s*[:\-]?\s*[A-Z0-9]{6,9})\b/i,
     personal: { birth: null, age: null, marital: null, nationality: null, religion: "warn", gender: null }, refs: "omit", maxWords: 1100,
-    length: "2 pages for most roles", personalRule: "Nationality, visa status, notice period and a professional photo are commonly included and often expected in the Gulf. Date of birth and marital status are optional. Leave out religion and ID or passport numbers.",
+    length: "2 pages for most roles", personalRule: "Nationality, visa status and notice period are commonly included in the Gulf, and a professional photo is often included (optional for many technical roles). Date of birth and marital status are optional. Leave out religion and ID or passport numbers.",
     work: '"Residence visa, transferable" or "Available to join immediately"', extra: "Stating current location, visa status, notice period and driving licence is normal.", reqs: "visa status or sponsorship, notice period, Arabic language, a UAE driving licence",
     letter: { open: '"Dear <name>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Kind regards," or "Yours sincerely,"', subject: false },
-    boards: [["LinkedIn", "https://www.linkedin.com/jobs/search/?location=United%20Arab%20Emirates&keywords="], ["Bayt", "https://www.bayt.com/en/uae/jobs/?q="]] },
+    boards: [["LinkedIn", "https://www.linkedin.com/jobs/search/?location=United%20Arab%20Emirates&keywords="], ["Bayt", "https://www.bayt.com/en/uae/jobs/{slug}-jobs/"]] },
   sg: { name: "Singapore", doc: "resume", spelling: "British (colour, organise)", locale: "en-SG", paper: "a4", place: "Singapore",
     idName: "NRIC or FIN number", idRe: /\b(NRIC|FIN)\s*(no|number)?\s*[:\-]?\s*[STFGM]\d{7}[A-Z]\b/i,
     personal: { birth: "warn", age: "warn", marital: "warn", nationality: null, religion: "fail", gender: "warn" }, refs: "omit", maxWords: 1100,
-    length: "1-2 pages", personalRule: "The Tripartite Guidelines on Fair Employment Practices discourage age, marital status, gender and race on applications; many candidates still include them, but leaving them off is safer. Never include religion or your NRIC/FIN number.",
+    length: "1-2 pages", personalRule: "The Tripartite Guidelines on Fair Employment Practices discourage age, marital status, gender and race on applications; many candidates still include them, but leaving them off is safer. A law (the Workplace Fairness Act) is due to take effect at the end of 2027. Never include religion or your NRIC/FIN number.",
     work: '"Singapore Citizen", "Singapore PR" or your current work pass', extra: "Citizenship, PR or work-pass status is commonly stated because it affects hiring.", reqs: "citizenship, PR or work-pass eligibility, specific certifications",
-    letter: { open: '"Dear <name>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Yours sincerely," or "Kind regards,"', subject: true },
+    letter: { open: '"Dear <name>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Yours sincerely," or "Kind regards,"', subject: false },
     boards: [["MyCareersFuture", "https://www.mycareersfuture.gov.sg/search?search="], ["LinkedIn", "https://www.linkedin.com/jobs/search/?location=Singapore&keywords="]] },
   intl: { name: "the job's country", label: "Other / international", doc: "resume", spelling: "one consistent spelling (match the job post's English)", locale: "en-GB", paper: "a4", place: "city and country",
     idName: "national ID number", idRe: /\b(national id|passport\s*(no|number))\s*[:\-]?\s*[A-Z0-9]{6,12}\b/i,
     personal: { birth: "warn", age: "warn", marital: "warn", nationality: null, religion: "warn", gender: "warn" }, refs: "omit", maxWords: 1100,
     length: "1-2 pages for most roles", personalRule: "Norms differ by country. Unless the country expects them, leave off photo, date of birth, marital status, religion and ID numbers; they rarely help and can invite bias.",
     work: "your right to work or visa status in that country", extra: "", reqs: "right to work or visa sponsorship, language requirements, licences",
-    letter: { open: '"Dear <name>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Kind regards,"', subject: true },
+    letter: { open: '"Dear <name>," if the post names a contact, otherwise "Dear Hiring Manager,"', close: '"Kind regards,"', subject: false },
     boards: [["LinkedIn", "https://www.linkedin.com/jobs/search/?keywords="], ["Indeed", "https://www.indeed.com/jobs?q="]] },
 };
 const REGION_TZ = [["ca", /^America\/(Toronto|Vancouver|Edmonton|Winnipeg|Halifax|Regina|St_Johns|Montreal|Moncton|Whitehorse|Yellowknife|Iqaluit|Glace_Bay|Goose_Bay|Dawson_Creek|Creston|Fort_Nelson|Swift_Current|Rankin_Inlet|Cambridge_Bay|Inuvik)$/],
@@ -1422,9 +1422,11 @@ function sortRoles(d) {
     .sort((a, b) => (b.in_target - a.in_target) || (FIT[a.fit] - FIT[b.fit])).slice(0, 8);
 }
 function jobLinks(r, reg) {
-  const q = encodeURIComponent(str(r.search) || str(r.title));
+  const term = str(r.search) || str(r.title), q = encodeURIComponent(term);
+  // some boards search by a keyword page ("junior-ai-engineer-jobs") rather than a query string
+  const slug = term.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return h("span", { class: "links" }, "Search: ",
-    reg.boards.flatMap(([name, url], i) => [i ? " · " : null, h("a", { href: url + q, target: "_blank", rel: "noopener" }, name)]));
+    reg.boards.flatMap(([name, url], i) => [i ? " · " : null, h("a", { href: url.includes("{slug}") ? url.replace("{slug}", slug) : url + q, target: "_blank", rel: "noopener" }, name)]));
 }
 function keepRealRewrites(d, resume) {
   const have = new Set(words(resume));

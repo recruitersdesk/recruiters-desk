@@ -15,6 +15,19 @@ No subscriptions, no ads, no API keys. Free for the person who runs it and, with
 - **Apply fixes for me.** Sam rewrites your resume with the fixes you tick, reviews it again, and gives you a PDF.
 - **Your region's rules.** Canada, United States, United Kingdom, Ireland, Australia, New Zealand, India, Germany, UAE & Gulf, Singapore, or international. Personal details, length, spelling, referees, letter openings and closings, and job boards all follow the region.
 
+## Where the country rules come from
+
+The rules for each region (personal details, length, letter conventions) were checked in November 2026 against sources such as:
+
+- Canada: Ontario Human Rights Commission guidance on application forms; Government of Canada Job Bank.
+- United States: EEOC guidance on pre-employment inquiries.
+- United Kingdom: [GOV.UK, preventing discrimination in recruitment](https://www.gov.uk/employer-preventing-discrimination/recruitment) and [Acas](https://www.acas.org.uk/recruitment/follow-discrimination-law).
+- Ireland: [IHREC, discrimination in recruitment](https://www.ihrec.ie/factsheets/discrimination-against-workers-recruitment-and-promotion).
+- Germany: [Bundesagentur für Arbeit, Lebenslauf](https://www.arbeitsagentur.de/bildung/bewerbung/lebenslauf).
+- Singapore: [TAFEP, Workplace Fairness Act](https://www.tal.sg/tafep/resources/articles/2026/are-you-ready-for-the-workplace-fairness-act) (due end-2027; the Tripartite Guidelines apply until then).
+
+Where norms are mixed (photos in Germany or the Gulf, personal details in India), the tool says "optional" or "many employers now prefer it left off" rather than calling it wrong. Some regions (Australia, New Zealand, UAE, India) rest mainly on recruiter and university career guidance because official pages don't cover CV content. Corrections are welcome as issues or pull requests.
+
 ## Accuracy guards (in code, not left to the AI)
 
 - The score is the sum of the rubric parts, each capped at its maximum.
