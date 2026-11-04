@@ -91,6 +91,7 @@ async function pdfText(blob) {
     $("dlLetter").click(); await wait(800);
     const lt = __saved ? await pdfText(__saved.data) : "";
     ok("letter PDF is real, readable text", lt.includes("Dear Ms. Lee") && lt.includes("cut lookup time by 40%") && lt.includes("<what>") && lt.includes("Priya Sharma"), lt.slice(0, 200));
+    ok("PDF: special hyphens and quotes become plain, no false warning", pdfSafe("AI\u2011related \u201cwork\u201d \u2013 2024") === 'AI-related "work" - 2024' && !pdfLossy("AI\u2011related \u2013 \u2022 ok") && pdfLossy("\u0939\u093f\u0928\u094d\u0926\u0940"));
     ok("letter PDF filename", /Cover-Letter\.pdf$/.test(__saved?.filename || ""), __saved?.filename);
     $("letter").textContent = L;
     $("tone").value = "direct"; $("length").value = "short"; $("rewrite").click(); await wait(400);

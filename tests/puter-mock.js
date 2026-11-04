@@ -1,4 +1,5 @@
 delete window.claude;
+window.RD_RELAY_URL = window.RD_RELAY_URL ?? ""; // Puter alone here; relay-mock.js turns the backup on
 // what Chrome hands a reopened tab: the old tab's session storage
 try { sessionStorage.setItem("rd.resume", "LEFT FROM A CLOSED TAB"); sessionStorage.setItem("rd.out", "{}"); } catch {}
 window.__p = { signIns: [], chats: [], downloads: [] };

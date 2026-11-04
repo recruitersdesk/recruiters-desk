@@ -29,14 +29,19 @@ Scores are a guide to readability and fit, not a prediction of any company's app
 
 ## How it stays free
 
-The page is one HTML file with no server.
+The page is one HTML file with no server of its own.
 
-- **On the public site,** the AI runs through [Puter.js](https://docs.puter.com/user-pays-model/) and its "user-pays" model. The first time you ask Sam for something, Puter creates a free guest account for you (no email needed). Your own free monthly allowance covers your use, so the site owner never pays and never holds an API key. If you use up the allowance, Puter offers more; this site never charges you.
+- **On the public site,** the AI runs through [Puter.js](https://docs.puter.com/user-pays-model/) and its "user-pays" model. The first time you ask Sam for something, Puter shows a one-click Continue window and creates a free guest account (no email). Your own free monthly allowance covers your use, so the site owner never pays and never holds an AI key.
+- **Automatic backup.** If Puter's window is closed, or Puter asks for a phone or card check, Sam carries on through a small relay on [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/)'s free daily allowance (source in [`relay/`](relay/)). Nothing to set up for the visitor. The backup has a shared daily limit, so if it's used up Sam says so and suggests trying again tomorrow or using Puter.
 - **Inside claude.ai,** the same file runs as an artifact and uses the viewer's own Claude account.
 
 ## Privacy
 
-Your resume, job post and Sam's notes are saved only in your browser (localStorage). Text is sent to the AI only when you click one of Sam's actions. On the public site that goes through Puter to the AI model; see the privacy policy on [puter.com](https://puter.com). **Start over** clears everything.
+Your resume, job post and Sam's notes are kept only in the open browser tab (sessionStorage): a refresh keeps them, closing the tab clears them. Only the region you pick is remembered between visits. **Start over** clears everything at once.
+
+Text is sent to an AI only when you click one of Sam's actions:
+- through Puter to the AI model (see the privacy policy on [puter.com](https://puter.com)), or
+- through the backup relay to Cloudflare Workers AI. Cloudflare states it [doesn't use Workers AI content to train models](https://developers.cloudflare.com/workers-ai/platform/data-usage/). The relay stores no resume text; it keeps only a per-visitor request count for a day, keyed by a hash of the IP address.
 
 ## Run it yourself
 

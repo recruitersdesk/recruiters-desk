@@ -1090,7 +1090,7 @@ async function puterModel(p) {
 }
 // The backup: a small free relay the site owner runs (it holds a free AI key server-side, so nothing is exposed here).
 // Empty until it's set up; then Sam uses it automatically whenever Puter can't be used, with no extra step for the visitor.
-const RELAY_URL = window.RD_RELAY_URL || ""; // set once the relay is live (tests set RD_RELAY_URL to a mock)
+const RELAY_URL = window.RD_RELAY_URL ?? "https://recruiters-desk-relay.meherzankturel.workers.dev"; // source: relay/ in the repo (tests point RD_RELAY_URL at a mock)
 const FALLBACK = new Set(["auth_closed", "popup_blocked", "verify", "allowance"]);
 const onRelay = () => !!RELAY_URL && sessionStorage.getItem("rd.ai") === "relay";
 async function relayCall(input, { onText, signal } = {}) {
@@ -1170,7 +1170,7 @@ const ERR = {
   invalid_json: "My notes came out garbled. Try again.",
   refused: "I can't help with that text. Check what you pasted and try again.",
   empty_completion: "I came back with nothing to say, which shouldn't happen. Try again.",
-  upstream_error: "The connection to Claude dropped before I finished. Try again; the next try uses a faster model.",
+  upstream_error: window.claude?.use ? "The connection to Claude dropped before I finished. Try again; the next try uses a faster model." : "The connection to the AI dropped before I finished. Try again.",
   invalid_request: "Something in this page's request was wrong. Try again; if it keeps happening, it's a bug in the page.",
   capability_removed: "This Claude app is too old for this page. Update or reload Claude, then try again.",
   capability_disabled: "Claude can't run in this view. Open the page at claude.ai in a browser.",
@@ -1895,12 +1895,14 @@ $("copyLetter").onclick = async () => {
 };
 /* ---------- PDF: real text (not a picture), so applicant tracking systems can read every word ---------- */
 // the built-in PDF fonts cover Latin-1; turn the usual typographic characters into plain ones and flag anything else
-function pdfSafe(t) {
-  return t.replace(/[–—−]/g, "-").replace(/[‘’′]/g, "'").replace(/[“”″]/g, '"')
+function pdfPlain(t) {
+  return t.replace(/[‐‑‒–—−]/g, "-").replace(/[‘’′]/g, "'").replace(/[“”″]/g, '"')
     .replace(/…/g, "...").replace(/[→➔➤]/g, "->").replace(/[   ]/g, " ").replace(/€/g, "EUR ")
-    .replace(/[•●▪‣⁃]\s*/g, "- ").replace(/[^\n\x20-\xFF]/g, "?");
+    .replace(/[•●▪‣⁃]\s*/g, "- ");
 }
-const pdfLossy = (t) => /[^\n\x20-\xFF]/.test(pdfSafe(t).replace(/\?/g, "")) || /[^\n\x20-\xFF]/.test(t.replace(/[–—−‘’′“”″…→➔➤   €•●▪‣⁃]/g, ""));
+const pdfSafe = (t) => pdfPlain(t).replace(/[^\n\x20-\xFF]/g, "?");
+// true when something had no plain equivalent (e.g. non-Latin letters) and became "?"
+const pdfLossy = (t) => /[^\n\x20-\xFF]/.test(pdfPlain(t));
 function newPdf() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: R().paper === "letter" ? "letter" : "a4" });
