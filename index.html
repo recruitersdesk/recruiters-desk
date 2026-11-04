@@ -1013,8 +1013,6 @@ async function handleFile(file, auto) {
     $("exampleNote").hidden = true;
     save(); refresh(); mood("idle");
     // an upload is the request: start the review straight away instead of waiting for a click
-    // on the public site the first run must come from a click (it opens the free guest sign-in), so ask for one
-    if (auto && hasResume() && !inClaude && !puterSignedIn()) { $("file").value = ""; $("file2").value = ""; say(`Thanks, I've got ${file.name}. Click Review my resume and I'll start. The first time, a small window gives you a free guest account; no email needed.`); return; }
     if (auto && hasResume()) { $("file").value = ""; $("file2").value = ""; return run("review"); }
     say(!hasResume() ? `I've got ${file.name}, but it only has ${wc(text)} words, which is too short to review. Check it's the full resume.`
       : hasJD() ? `Thanks, I've got ${file.name}. Pick what you need in step 3.` : `Thanks, I've got ${file.name}. I can review it now, or paste a job post for a fit check and cover letter.`);
@@ -1784,7 +1782,10 @@ async function run(kind) {
   const sample = await samplePromise;
   showTab(kind);
   if (!sample) { say(UNAVAILABLE); if (kind !== "letter") $("rp-" + kind).replaceChildren(h("div", { class: "errbox" }, h("span", {}, UNAVAILABLE))); else $("letterState").replaceChildren(h("div", { class: "errbox" }, h("span", {}, UNAVAILABLE))); return; }
-  setRunning(true); mood("reading", { review: "Sam is reading your resume…", match: "Sam is checking you against the job…", letter: "Sam is writing your cover letter…" }[kind]); say("", true);
+  setRunning(true); mood("reading", { review: "Sam is reading your resume…", match: "Sam is checking you against the job…", letter: "Sam is writing your cover letter…" }[kind]);
+  // the first time on the public site, Puter asks once before it creates the free guest account
+  if (!inClaude && !puterSignedIn()) say("First time here? Click Continue in the Puter window. It gives you a free guest account, no email or card, and then I'll start reading.");
+  else say("", true);
   ctl = new AbortController();
   $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
   const { resume, jd } = inputs();

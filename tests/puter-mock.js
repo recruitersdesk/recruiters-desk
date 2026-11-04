@@ -1,7 +1,7 @@
 delete window.claude;
 window.__p = { signIns: [], chats: [], downloads: [] };
 window.puter = {
-  auth: { _in: false, isSignedIn() { return this._in; }, async signIn(o) { __p.signIns.push(o); this._in = true; return {}; } },
+  auth: { _in: false, isSignedIn() { return this._in; }, async signIn(o) { __p.signIns.push(o); __p.sayAtSignIn = document.getElementById("say")?.textContent; await new Promise(r => setTimeout(r, 50)); this._in = true; return {}; } },
   ai: {
     async listModels() { return [{ id: "anthropic/claude-opus-5-5" }, { id: "anthropic/claude-sonnet-4-5" }, { id: "anthropic/claude-sonnet-5-5" }, "openai/gpt-5.5"]; },
     async chat(input, opts) {

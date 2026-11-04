@@ -5,12 +5,13 @@
     ok("public site: Puter privacy note + footer", $("privacyText").textContent.includes("through Puter") && !$("footAi").hidden);
     resumeEl.value = "Priya Sharma\nToronto, ON\n" + "Built a RAG search tool over 12,000 shipping documents and cut lookup time by 40% in 2024. ".repeat(6);
     await handleFile(new File([resumeEl.value], "resume.txt", { type: "text/plain" }), true); await wait(100);
-    ok("upload doesn't auto-run before the guest sign-in", __p.chats.length === 0 && $("say").textContent.includes("Click Review my resume"), $("say").textContent);
-    $("go-review").click(); await wait(500);
+    ok("upload starts the review by itself and explains Puter's window", __p.signIns.length === 1 && /Click Continue in the Puter window/.test(__p.sayAtSignIn || ""), __p.sayAtSignIn);
+    await wait(500);
     ok("guest sign-in requested, no sign-up", __p.signIns.length === 1 && __p.signIns[0].attempt_temp_user_creation === true, JSON.stringify(__p.signIns));
     const c = __p.chats[0];
     ok("uses the newest Claude Sonnet, streaming", c && c.opts.model === "anthropic/claude-sonnet-5-5" && c.opts.stream === true, c && JSON.stringify(c.opts));
     ok("JSON read out of a fenced, streamed answer", $("rp-review").querySelector(".ring .num")?.textContent.startsWith("84"), $("rp-review").textContent.slice(0, 200));
+    ok("REVIEWED stamp on the desk after the scan", scene.dataset.state === "done", scene.dataset.state);
     $("go-letter").click(); await wait(200);
     ok("letter needs a job post (unchanged behaviour)", $("say").textContent.includes("job post"));
     jdEl.value = "Junior AI Engineer at Maple Health in Toronto. Build LLM features with Python, RAG and evaluation. Requirements: Python, vector databases, cloud. ".repeat(2); jdEl.dispatchEvent(new Event("input"));
