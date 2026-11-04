@@ -70,6 +70,8 @@ async function pdfText(blob) {
     ok("match: must-haves fact card", m.querySelector(".fact .k")?.textContent === "Must-haves" && m.querySelector(".fact b").textContent === "2/4 met");
     ok("match: next card offers the letter", m.querySelector(".rail-next button")?.textContent === "Write my cover letter");
     ok("journey: fit check done moves you to apply", $("journey").querySelector('[data-go="apply"]').dataset.state === "now");
+    ok("match: the adjusted score explains itself", m.querySelector(".capnote")?.textContent === "Adjusted from 72%: you meet 2 of 4 must-haves." && m.querySelector(".ring .num").textContent.startsWith("66"), m.querySelector(".capnote")?.textContent);
+    ok("match: 'how the % is worked out' note is there, folded", [...m.querySelectorAll(".howto summary")].some(x => x.textContent.includes("How the match % is worked out")) && [...m.querySelectorAll(".howto")].every(x => !x.open));
     ok("match: prompt has job + resume", c2.input.includes("Maple Health") && c2.input.includes("12,000 shipping"));
     ok("match: fresh result not stale", $("stale").hidden);
 
@@ -142,6 +144,7 @@ async function pdfText(blob) {
     box.querySelector(".show-more").click();
     ok("plan: Show more reveals all", pss.every(x => !x.hidden) && !box.querySelector(".show-more"));
     box.remove();
+    ok("roles: 'how strong, good or stretch is decided' note", rs && rs.closest(".subpane").querySelector(".howto")?.textContent.includes("at least 12 months of dated work"));
     ok("roles: Job Bank, LinkedIn, Indeed links", rs && rs.querySelector('a[href^="https://www.jobbank.gc.ca/jobsearch/jobsearch?searchstring=junior%20AI%20engineer"]') && rs.querySelectorAll("a").length === 12);
     ok("Sam names the best-fit role", $("say").textContent.includes("Best-fit role: Junior AI Engineer."), $("say").textContent);
     // Apply fixes for me: rewrite → code checks → download → rescan → undo

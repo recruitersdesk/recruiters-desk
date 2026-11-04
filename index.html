@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="20261104151117">
+<meta name="build" content="20261104151350">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Free AI recruiter: an honest hiring-manager review of your resume, a job-fit check and a tailored cover letter, for the country you are applying in.">
 <meta property="og:title" content="Recruiter's Desk">
@@ -452,6 +452,13 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 .more summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .more > .sec, .more > .rubric { padding: 0 2px 16px; }
 .more-group { display: grid; }
+.howto { border: 0; }
+.howto summary { font-size: 13.5px; font-weight: 500; color: var(--accent); padding: 4px 0; justify-content: flex-start; }
+.howto summary::after { margin-left: 8px; font-size: 16px; color: var(--accent); }
+.howto dl { margin: 4px 0 6px; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; font-size: 13.5px; background: var(--bg); border-radius: 10px; padding: 12px 14px; }
+.howto dt { font-weight: 600; }
+.howto dd { margin: 0; color: var(--muted); }
+.capnote { font-size: 13px; color: var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 8px 10px; }
 /* results: summary rail + one short section at a time */
 .split { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 28px; align-items: start; }
 @container results (max-width: 760px) { .split { grid-template-columns: minmax(0, 1fr); gap: 20px; } .srail { position: static; } }
@@ -1543,6 +1550,9 @@ function showMore(n) {
   b.onclick = () => { b.closest(".plan").querySelectorAll(".ps[hidden]").forEach(x => x.hidden = false); b.remove(); };
   return b;
 }
+// a folded "how is this decided" note: there when someone wants it, out of the way when they don't
+const howTo = (title, rows) => h("details", { class: "more howto" }, h("summary", {}, h("span", {}, title)),
+  h("dl", {}, rows.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])));
 const more = (title, count, ...body) => h("details", { class: "more" }, h("summary", {}, h("span", {}, title, count ? h("span", { class: "count" }, String(count)) : null)), ...body);
 /* ---------- "Apply fixes for me": rewrite, check, download, rescan ---------- */
 const fixText = (x) => [x.title, x.why, x.fix && "What to do: " + x.fix,
@@ -1720,6 +1730,7 @@ function rolesList(roles, reg) {
         h("span", { class: "pill " + t }, r.fit + " fit")),
       h("span", { class: "d" }, str(r.why)),
       str(r.gap) ? h("span", { class: "fix gap" }, str(r.gap)) : null,
+      Number.isFinite(Number(r.months)) && r.months !== "" && r.months != null ? h("span", { class: "d" }, `Dated experience in this field: ${Number(r.months)} ${Number(r.months) === 1 ? "month" : "months"}`) : null,
       jobLinks(r, reg));
   }));
 }
@@ -1759,6 +1770,12 @@ function renderReview(d) {
         planBlock(steps, "No changes needed. Tailor it to each job post with Check my fit.")] },
       roles.length ? { key: "roles", label: "Roles", count: roles.length, body: [
         h("p", { class: "tab-lede" }, "Best fit first. Open a role for what you'd need and where to search."),
+        howTo("How Sam decides strong, good or stretch", [
+          ["Strong", "You already meet the usual must-haves for this title, including at least 12 months of dated work in its field."],
+          ["Good", "You meet most of them, with one clear gap, such as fewer dated months than the role usually asks for."],
+          ["Stretch", "Worth applying, but there's a clear gap: a core skill or several years of experience."],
+          ["What counts", "Only dated jobs count as experience. Projects and degrees show skill but don't add years. Under 2 years means junior or entry-level titles."],
+          ["Fallback", "A role outside the ones you're aiming for, shown last because your resume supports it."]]),
         section("Roles you can apply to", roles.length, rolesList(roles, reg))] } : null,
       arr(d.strengths).length || d.top_strength ? { key: "strengths", label: "Strengths", count: arr(d.strengths).length, body: [
         d.top_strength?.why ? h("div", { class: "star" }, h("b", {}, str(d.top_strength.title)), h("span", {}, str(d.top_strength.why))) : null,
@@ -1814,6 +1831,9 @@ function matchScore(d) {
 }
 function renderMatch(d) {
   const s = matchScore(d), [verdict, t] = matchBand(s), role = d.role || {};
+  const mustAll = arr(d.must_haves), metN = mustAll.filter(x => str(x.status).toLowerCase() === "met").length;
+  // say why when the code lowered the model's score, so the number is never a mystery
+  const capped = s < clamp(d.match_score) ? `Adjusted from ${clamp(d.match_score)}%: you meet ${metN} of ${mustAll.length} must-haves${/senior|lead|staff|principal|mid/i.test(str(role.seniority)) && /junior|early|entry|graduate|new/i.test(str(role.candidate_level)) ? ", and the role is more senior than your dated experience" : ""}.` : "";
   const must = arr(d.must_haves), met = must.filter(x => str(x.status).toLowerCase() === "met").length;
   const gapsMust = must.filter(x => str(x.status).toLowerCase() !== "met");
   const kwMissing = arr(d.keywords_missing).map(str).filter(Boolean);
@@ -1837,6 +1857,7 @@ function renderMatch(d) {
       h("div", { class: "verdict rv-hero" }, ring(s, "match", t), h("span", { class: "stamp c-" + t }, verdict)),
       h("p", { class: "headline" }, str(d.summary)),
       h("div", { class: "meta" }, [role.title, role.company, role.seniority].filter(Boolean).join(" · ")),
+      capped ? h("div", { class: "capnote" }, capped) : null,
       role.candidate_level ? h("div", { class: "meta" }, "You read as: " + str(role.candidate_level)) : null,
       must.length ? h("div", { class: "fact " + (met === must.length ? "best" : "warnf") }, h("span", { class: "k" }, "Must-haves"), h("b", {}, `${met}/${must.length} met`),
         gapsMust.length ? h("span", {}, `Gaps: ${gapsMust.slice(0, 3).map(x => str(x.requirement)).join(", ")}${gapsMust.length > 3 ? "…" : ""}`) : null) : null,
@@ -1846,6 +1867,11 @@ function renderMatch(d) {
     tabs: [
       { key: "plan", label: "Your plan", count: steps.length, body: [h("p", { class: "tab-lede" }, steps.length ? "Before you apply. Only add what's true for you." : ""), plan] },
       { key: "reqs", label: "Requirements", count: `${met}/${must.length}`, body: [
+        howTo("How the match % is worked out", [
+          ["1", "Sam marks every requirement in the post as met, partial or missing. Must-haves count far more than nice-to-haves."],
+          ["2", "The score can't be higher than the must-haves you meet allow: meeting half of them tops out around 60%."],
+          ["3", "If the job is more senior than your dated experience, the score is lowered."],
+          ["Verdict", "80+ Strong fit, apply · 65-79 Worth applying · 45-64 Stretch · under 45 Poor fit."]]),
         section("Must-haves", `${met}/${must.length} met`, reqList(must)),
         arr(d.nice_to_haves).length ? section("Nice-to-haves", null, reqList(d.nice_to_haves)) : null] },
       { key: "keywords", label: "Keywords", count: null, body: [
