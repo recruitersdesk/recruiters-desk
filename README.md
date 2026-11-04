@@ -1,0 +1,60 @@
+# Recruiter's Desk
+
+A free AI recruiter for job seekers. Put your resume on Sam's desk and he reviews it the way a hiring manager would, checks your fit for a job post, writes a tailored cover letter, and can apply his fixes for you.
+
+**Live:** https://meherzankturel.github.io/recruiters-desk/
+
+No subscriptions, no ads, no API keys. Free for the person who runs it and, within a monthly allowance, for the people who use it.
+
+## What it does
+
+- **Honest resume review.** A 7-second skim, then a careful read: a score out of 100 added up from six parts (relevance, impact, progression, clarity, credibility, standards), your strongest point, and a numbered plan of what to fix first.
+- **Roles you can apply to,** ranked for the roles you're aiming for, with search links to job boards in your region.
+- **Job-fit check.** Every requirement in a job post marked met, partial or missing, plus the exact keywords to add.
+- **Cover letter** in the business-letter format of the country you're applying in.
+- **Apply fixes for me.** Sam rewrites your resume with the fixes you tick, reviews it again, and gives you a PDF.
+- **Your region's rules.** Canada, United States, United Kingdom, Ireland, Australia, New Zealand, India, Germany, UAE & Gulf, Singapore, or international. Personal details, length, spelling, referees, letter openings and closings, and job boards all follow the region.
+
+## Accuracy guards (in code, not left to the AI)
+
+- The score is the sum of the rubric parts, each capped at its maximum.
+- Keywords are sorted into "you have" and "to add" by searching your actual resume text.
+- Rewrites of lines that aren't on your resume are dropped.
+- When Sam applies fixes, the rewrite is refused if it drops any of your dates or your email. Any number that isn't on your original resume is turned into `[X]`.
+- A resume or letter PDF can't be downloaded while an `[X]` or `[bracket]` blank is left.
+- PDFs are real text (not images), so applicant tracking systems can read them.
+- Personal-detail checks (date of birth, marital status, ID numbers and so on) follow your region's norms.
+
+Scores are a guide to readability and fit, not a prediction of any company's applicant tracking system.
+
+## How it stays free
+
+The page is one HTML file with no server.
+
+- **On the public site,** the AI runs through [Puter.js](https://docs.puter.com/user-pays-model/) and its "user-pays" model. The first time you ask Sam for something, Puter creates a free guest account for you (no email needed). Your own free monthly allowance covers your use, so the site owner never pays and never holds an API key. If you use up the allowance, Puter offers more; this site never charges you.
+- **Inside claude.ai,** the same file runs as an artifact and uses the viewer's own Claude account.
+
+## Privacy
+
+Your resume, job post and Sam's notes are saved only in your browser (localStorage). Text is sent to the AI only when you click one of Sam's actions. On the public site that goes through Puter to the AI model; see the privacy policy on [puter.com](https://puter.com). **Start over** clears everything.
+
+## Run it yourself
+
+```sh
+./build.sh                 # wraps app.html into index.html
+python3 -m http.server     # then open http://localhost:8000
+```
+
+Puter needs a real web address (http://localhost works); it won't sign in from a `file://` page.
+
+## Tests
+
+```sh
+./tests/run.sh             # headless Chrome; the AI is mocked, so no network calls or usage
+```
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
+
+Sam's feedback comes from an AI and can be wrong. Check every change before you send an application.
