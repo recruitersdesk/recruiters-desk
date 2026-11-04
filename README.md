@@ -2,9 +2,11 @@
 
 A free AI recruiter for job seekers. Put your resume on Sam's desk and he reviews it the way a hiring manager would, checks your fit for a job post, writes a tailored cover letter, and can apply his fixes for you.
 
-**Use it free:** https://recruiters-desk.pages.dev
+### **[Use it free → recruiters-desk.pages.dev](https://recruiters-desk.pages.dev)**
 
 Most people only need that link. Nothing to install, no sign-up.
+
+![Recruiter's Desk: Sam reviews an example resume, scores it 84/100 and lists the fixes that matter most](docs/screenshot.jpg)
 
 No subscriptions, no ads, no API keys. Free for the people who use it and for the person who runs it.
 

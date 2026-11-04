@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8">
+<!-- Source for og.png (the link-preview image). Render: headless Chrome --window-size=1200,630 --screenshot -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1200px; height: 630px; display: grid; grid-template-columns: 560px 640px; background: #f2f4f7; font-family: "IBM Plex Sans", system-ui, sans-serif; color: #18202b; overflow: hidden; }
+  .copy { padding: 64px 48px 56px 64px; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 14px; font: 700 30px/1 "Bricolage Grotesque", sans-serif; letter-spacing: -.01em; }
+  .mark { width: 44px; height: 44px; border-radius: 11px; background: #18202b; display: grid; place-items: center; }
+  h1 { margin-top: 40px; font: 700 54px/1.06 "Bricolage Grotesque", sans-serif; letter-spacing: -.025em; }
+  p { margin-top: 22px; font-size: 23px; line-height: 1.45; color: #4a5462; }
+  .tags { margin-top: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+  .tags span { font: 500 15px/1 "IBM Plex Mono", monospace; letter-spacing: .02em; text-transform: uppercase; padding: 10px 13px; border-radius: 8px; background: #fff; border: 1px solid #dde2e9; }
+  .tags span.free { background: #18202b; color: #fff; border-color: #18202b; }
+  .photo { position: relative; background: url(../desk.jpg) 42% 30% / cover no-repeat; }
+  .photo::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, #f2f4f7 0, rgba(242,244,247,0) 70px); }
+  .stamp { position: absolute; right: 44px; bottom: 44px; background: #fff; border-radius: 14px; padding: 16px 20px; box-shadow: 0 12px 32px rgba(24,32,43,.18); display: flex; align-items: center; gap: 14px; }
+  .ring { width: 58px; height: 58px; border-radius: 50%; background: conic-gradient(#1f8a5b 0 78%, #e3e7ed 0); display: grid; place-items: center; }
+  .ring b { width: 46px; height: 46px; border-radius: 50%; background: #fff; display: grid; place-items: center; font: 700 19px "Bricolage Grotesque", sans-serif; }
+  .stamp div { font-size: 15px; color: #4a5462; } .stamp strong { display: block; font: 700 18px "Bricolage Grotesque", sans-serif; color: #1f8a5b; }
+</style></head><body>
+  <div class="copy">
+    <div class="brand"><span class="mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="m9 14 2 2 4-4"/></svg></span>Recruiter's Desk</div>
+    <h1>An honest resume review, free.</h1>
+    <p>A hiring manager's read of your resume, a job-fit check and a cover letter, for the country you're applying in.</p>
+    <div class="tags"><span class="free">Free</span><span>No sign-up</span><span>Open source</span></div>
+  </div>
+  <div class="photo"><div class="stamp"><span class="ring"><b>78</b></span><div><strong>Advance to screen</strong>Sam's verdict, explained</div></div></div>
+</body></html>

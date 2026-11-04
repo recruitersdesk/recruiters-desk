@@ -13,7 +13,13 @@ BUILD=$(date -u +%Y%m%d%H%M%S)
     '<script>if (/\.github\.io$/.test(location.hostname)) location.replace("https://recruiters-desk.pages.dev/" + location.search + location.hash)</script>' \
     '<meta name="description" content="Free AI recruiter: an honest hiring-manager review of your resume, a job-fit check and a tailored cover letter, for the country you are applying in.">' \
     '<meta property="og:title" content="Recruiter'"'"'s Desk">' \
-    '<meta property="og:description" content="Free, open-source AI resume review, job-fit check and cover letters. No subscriptions.">' \
+    '<meta property="og:description" content="A hiring manager'"'"'s read of your resume, a job-fit check and a cover letter, for the country you'"'"'re applying in. Free, no sign-up, open source.">' \
+    '<meta property="og:type" content="website">' \
+    '<meta property="og:url" content="https://recruiters-desk.pages.dev/">' \
+    '<meta property="og:image" content="https://recruiters-desk.pages.dev/og.png">' \
+    '<meta property="og:image:width" content="1200">' '<meta property="og:image:height" content="630">' \
+    '<meta property="og:image:alt" content="Recruiter'"'"'s Desk: an honest resume review, free">' \
+    '<meta name="twitter:card" content="summary_large_image">' \
     '<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>' \
     '</head>' '<body>'
   cat app.html
