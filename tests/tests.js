@@ -242,6 +242,9 @@ async function pdfText(blob) {
     const cd = { roles: [{ months: 14 }], certs: [{ id: " AWS-AI-Practitioner ", why: "x" }, { id: "made-up" }, { id: "aws-ai-practitioner" }, { id: "cissp" }, { id: "cipd-level5" }, { id: "comptia-security-plus" }, { id: "comptia-a-plus" }, { id: "cphr-canada" }, { id: "psm-i" }, { id: "cka" }, { id: "capm" }, { id: "csm" }] };
     pickCerts(cd, "CERTIFICATIONS\nCompTIA Security+ (2024)", REGIONS.ca, "Junior AI Engineer or project coordinator");
     ok("certs: unknown, duplicate, wrong-region, already-held, off-field and not-yet-eligible are dropped; max 4", cd.certs.map(x => x.id).join("|") === "aws-ai-practitioner|psm-i|cka|capm", cd.certs.map(x => x.id).join("|"));
+    const vn = { roles: [], certs: [{ id: "azure-ai-fundamentals", why: "Provides a vendor-neutral AI credential" }, { id: "comptia-security-plus", why: "A vendor-neutral security baseline" }] };
+    pickCerts(vn, "r", REGIONS.ca, "security or AI");
+    ok("certs: a false 'vendor-neutral' reason is hidden, a true one kept", vn.certs[0].why === "" && vn.certs[1].why.includes("vendor-neutral"), JSON.stringify(vn.certs));
     const ids = (r, t) => certsFor(REGIONS[r], t).map(c => c.id);
     ok("certs: an HR target gets HR certifications, not project or cloud ones", ids("uk", "HR Advisor").includes("cipd-level5") && !ids("uk", "HR Advisor").some(x => /prince2|aws|azure/.test(x)), ids("uk", "HR Advisor").join());
     ok("certs: an AI target gets AI, data and cloud, not HR or finance", ids("ca", "Junior AI Engineer").includes("aws-ai-practitioner") && ids("ca", "Junior AI Engineer").includes("pl-300") && !ids("ca", "Junior AI Engineer").some(x => /cphr|cpa|shrm/.test(x)), ids("ca", "Junior AI Engineer").length);

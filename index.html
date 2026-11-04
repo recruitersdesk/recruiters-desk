@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="20261104164824">
+<meta name="build" content="20261104170004">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Free AI recruiter: an honest hiring-manager review of your resume, a job-fit check and a tailored cover letter, for the country you are applying in.">
 <meta property="og:title" content="Recruiter's Desk">
@@ -315,6 +315,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .pitch .btn-link { justify-self: start; }
 .qa .t::after { content: none !important; }
 .item .fix.gap::before { content: "To land it → "; }
+.cert { display: grid; gap: 6px; margin-top: 4px; } .cert p { margin: 0; font-size: 14px; } .cert b { display: block; font: 500 11px var(--font-mono); color: var(--ink); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 1px; }
 .rw { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 @media (max-width: 620px) { .rw { grid-template-columns: minmax(0, 1fr); } }
 .rw > div { padding: 12px 14px; font-size: 14px; }
@@ -1589,6 +1590,7 @@ function jobLinks(r, reg) {
     reg.boards.flatMap(([name, url], i) => [i ? " · " : null, h("a", { href: url.includes("{slug}") ? url.replace("{slug}", slug) : url + q, target: "_blank", rel: "noopener" }, name)]));
 }
 // certifications: only ids on the checked list, for this region, not already on the resume, and only if the dates meet the issuer's experience rule
+const VENDORS = /Amazon|Microsoft|Google|Salesforce|Databricks|Snowflake|Oracle|Cisco|Red Hat|HashiCorp|Meta|HubSpot/;
 const certOf = (id) => CERTS.find(c => c.id === str(id).trim().toLowerCase());
 const holds = (c, resume) => [c.name, ...arr(c.also)].some(n => inResume(n, resume));
 function pickCerts(d, resume, r, target) {
@@ -1597,7 +1599,9 @@ function pickCerts(d, resume, r, target) {
     .filter(x => x.id && !seen.has(x.id) && seen.add(x.id)).filter(x => {
       const c = certOf(x.id);
       return certsFor(r, certTopic(target, resume)).includes(c) && !holds(c, resume) && !((c.months || 0) > months);
-    }).slice(0, 4);
+    }).slice(0, 4)
+    // the model's reason is about fit; one that calls a vendor's own certification "vendor-neutral" is wrong, so it isn't shown
+    .map(x => /vendor[- ]neutral/i.test(x.why) && VENDORS.test(certOf(x.id).issuer) ? { ...x, why: "" } : x);
 }
 function keepRealRewrites(d, resume) {
   const have = new Set(words(resume));
@@ -1899,10 +1903,11 @@ function certList(certs) {
   return h("div", { class: "list" }, certs.map(({ c, why }) =>
     h("details", { class: "item role good" },
       h("summary", {}, h("span", { class: "t" }, c.name), h("span", { class: "pill good" }, c.level)),
-      why ? h("span", { class: "d" }, why) : null,
-      h("span", { class: "d" }, "Why employers ask for it: " + c.why_demand),
-      c.prereq ? h("span", { class: "fix gap" }, "You need first: " + c.prereq) : null,
-      h("span", { class: "links" }, `From ${c.issuer}. Fees and dates: `, h("a", { href: c.url, target: "_blank", rel: "noopener" }, "official page")))));
+      h("div", { class: "cert" },
+        why ? h("p", {}, why) : null,
+        h("p", { class: "d" }, h("b", {}, "Why employers ask for it "), c.why_demand),
+        c.prereq ? h("p", { class: "d" }, h("b", {}, "Before you can sit it "), c.prereq) : null,
+        h("span", { class: "links" }, `From ${c.issuer}. Fees and exam dates: `, h("a", { href: c.url, target: "_blank", rel: "noopener" }, "official page"))))));
 }
 function rubricBlock(rub) {
   return h("div", { class: "rubric" }, rub.map(x => h("div", { class: "rb", title: x.note },
