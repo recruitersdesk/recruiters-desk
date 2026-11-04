@@ -1,4 +1,6 @@
 delete window.claude;
+// what Chrome hands a reopened tab: the old tab's session storage
+try { sessionStorage.setItem("rd.resume", "LEFT FROM A CLOSED TAB"); sessionStorage.setItem("rd.out", "{}"); } catch {}
 window.__p = { signIns: [], chats: [], downloads: [] };
 window.puter = {
   auth: { _in: false, isSignedIn() { return this._in; }, async signIn(o) { __p.signIns.push(o); __p.sayAtSignIn = document.getElementById("say")?.textContent; await new Promise(r => setTimeout(r, 50)); this._in = true; return {}; } },

@@ -2,9 +2,11 @@
 # app.html is the page body (it also runs as a claude.ai artifact); index.html wraps it into a full web page for GitHub Pages.
 set -e
 cd "$(dirname "$0")"
+BUILD=$(date -u +%Y%m%d%H%M%S)
 {
   printf '%s\n' '<!doctype html>' '<html lang="en">' '<head>' \
     '<meta charset="utf-8">' \
+    "<meta name=\"build\" content=\"$BUILD\">" \
     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">' \
     '<meta name="description" content="Free AI recruiter: an honest hiring-manager review of your resume, a job-fit check and a tailored cover letter, for the country you are applying in.">' \
     '<meta property="og:title" content="Recruiter'"'"'s Desk">' \
@@ -14,4 +16,5 @@ cd "$(dirname "$0")"
   cat app.html
   printf '%s\n' '</body>' '</html>'
 } > index.html
-echo "built index.html"
+printf '%s\n' "$BUILD" > version.txt
+echo "built index.html ($BUILD)"

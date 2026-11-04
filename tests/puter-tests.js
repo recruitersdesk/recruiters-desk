@@ -2,6 +2,7 @@
   const T = [], ok = (n, c, i) => T.push({ name: n, pass: !!c, info: c ? undefined : String(i) }), wait = (ms) => new Promise(r => setTimeout(r, ms));
   try {
     await wait(300);
+    ok("public site: a reopened tab starts fresh", !resumeEl.value && !sessionStorage.getItem("rd.out") && scene.dataset.has === "0", resumeEl.value.slice(0, 40));
     ok("public site: Puter privacy note + footer", $("privacyText").textContent.includes("through Puter") && !$("footAi").hidden);
     resumeEl.value = "Priya Sharma\nToronto, ON\n" + "Built a RAG search tool over 12,000 shipping documents and cut lookup time by 40% in 2024. ".repeat(6);
     await handleFile(new File([resumeEl.value], "resume.txt", { type: "text/plain" }), true); await wait(100);

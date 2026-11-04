@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="build" content="20261104132958">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Free AI recruiter: an honest hiring-manager review of your resume, a job-fit check and a tailored cover letter, for the country you are applying in.">
 <meta property="og:title" content="Recruiter's Desk">
@@ -829,7 +830,14 @@ function mood(state, padText) { scene.dataset.state = state; if (padText) $("pad
 // Only the region choice is remembered between visits.
 const KEEP = new Set(["rd.region"]);
 const area = (k) => KEEP.has(k) ? localStorage : sessionStorage;
-try { ["rd.resume", "rd.jd", "rd.file", "rd.target", "rd.out", "rd.original"].forEach(k => localStorage.removeItem(k)); } catch {} // from older versions that kept everything
+const WORK_KEYS = ["rd.resume", "rd.jd", "rd.file", "rd.target", "rd.out", "rd.original"];
+try { WORK_KEYS.forEach(k => localStorage.removeItem(k)); } catch {} // from older versions that kept everything
+// On the public site only a refresh keeps your work. A new tab, a reopened tab or a link starts fresh,
+// even though Chrome hands a reopened tab its old session storage. (Inside claude.ai the host reloads the frame itself, so work is kept.)
+if (!window.claude?.use) {
+  let nav = ""; try { nav = performance.getEntriesByType("navigation")[0]?.type || ""; } catch {}
+  if (nav !== "reload") try { WORK_KEYS.forEach(k => sessionStorage.removeItem(k)); } catch {}
+}
 const store = {
   get(k) { try { return area(k).getItem(k); } catch { return null; } },
   set(k, v) { try { area(k).setItem(k, v); } catch {} },
@@ -1983,6 +1991,18 @@ function saveOuts(tab) {
 })();
 
 if (inClaude) $("footAi").hidden = true;
+// GitHub Pages lets browsers reuse a cached page for up to 10 minutes; if this copy is older than the live one, load the live one
+(async () => {
+  const mine = document.querySelector('meta[name="build"]')?.content;
+  if (inClaude || !mine) return;
+  try {
+    const live = (await (await fetch("version.txt?t=" + Date.now(), { cache: "no-store" })).text()).trim();
+    if (live && live !== mine && sessionStorage.getItem("rd.reloadedFor") !== live) {
+      sessionStorage.setItem("rd.reloadedFor", live);
+      location.replace(location.pathname + "?v=" + live);
+    }
+  } catch {}
+})();
 if (!inClaude) $("privacyText").textContent = "Saved only in your browser. Sent to the AI (through Puter) only when you ask Sam.";
 samplePromise.then(s => { if (!s) say(UNAVAILABLE); });
 </script>
