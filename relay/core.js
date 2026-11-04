@@ -6,7 +6,7 @@ const ORIGINS = ["https://recruiters-desk.pages.dev"];
 const LOCAL = /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/;
 const allowed = (origin) => ORIGINS.includes(origin) || LOCAL.test(origin);
 const MODEL = "@cf/openai/gpt-oss-120b";
-const PER_VISITOR_PER_DAY = 24; // model calls: a review is 2 (it runs in two halves), a fit check and a letter 1 each, a few times over
+const PER_VISITOR_PER_DAY = 30; // model calls: a review is 3 (two halves and the certifications), a fit check and a letter 1 each, a few times over
 const MAX_CHARS = 50000;
 // only Sam's own requests are relayed, so this can't be used as a general free chatbot
 const OURS = [/^You are the hiring manager for this role/, /^You are an expert technical recruiter doing a fit analysis/, /^Write a tailored cover letter/, /^You are a senior resume writer/];

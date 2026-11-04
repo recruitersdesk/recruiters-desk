@@ -199,7 +199,7 @@ async function pdfText(blob) {
       ok("blanks: one box per [X], button locked until filled", bx.querySelectorAll(".blank-row").length === 1 && bgo.disabled && bx.textContent.includes("Cut processing costs by [X]"));
       bin.value = "18%"; bin.dispatchEvent(new Event("input"));
       bgo.click(); await wait(900);
-      ok("rescan runs on the finished resume (both halves)", __calls.length === n0 + 3 && __calls.at(-1).input.includes("Cut processing costs by 18% using batching") && !__calls.at(-1).input.split("<resume>")[1].split("</resume>")[0].includes("[X]"), [__calls.length - n0, __calls.slice(n0).map(c => c.input.slice(0, 40)).join(" / ")].join(" :: "));
+      ok("rescan runs on the finished resume (both halves + certifications)", __calls.length === n0 + 4 && __calls.at(-1).input.includes("Cut processing costs by 18% using batching") && !__calls.at(-1).input.split("<resume>")[1].split("</resume>")[0].includes("[X]"), [__calls.length - n0, __calls.slice(n0).map(c => c.input.slice(0, 40)).join(" / ")].join(" :: "));
       const ap = $("rp-review").querySelector(".applied");
       ok("apply: result card shows the score change", ap && !ap.classList.contains("pending") && /score 84 → 84/.test(ap.textContent), ap && ap.textContent.slice(0, 200));
       ok("apply: Sam reports the rescan", $("say").textContent.startsWith("Rescanned. 84 → 84/100") && $("say").textContent.includes("downloading as a PDF"), $("say").textContent);
@@ -253,7 +253,7 @@ async function pdfText(blob) {
     // a real upload starts the review by itself
     const before = __calls.length;
     await handleFile(fileOf("resume.pdf", "application/pdf"), true); await wait(400);
-    ok("upload auto-starts the review (two halves at once)", __calls.length === before + 2 && __calls.at(-1).kind === "json" && !$("rp-review").hidden && $("rp-review").querySelector(".ring") && scene.dataset.state === "done", [__calls.length - before, __calls.at(-1).kind, $("rp-review").hidden, !!$("rp-review").querySelector(".ring"), scene.dataset.state, $("say").textContent].join("|"));
+    ok("upload auto-starts the review (two halves and certifications at once)", __calls.length === before + 3 && __calls.at(-1).kind === "json" && !$("rp-review").hidden && $("rp-review").querySelector(".ring") && scene.dataset.state === "done", [__calls.length - before, __calls.at(-1).kind, $("rp-review").hidden, !!$("rp-review").querySelector(".ring"), scene.dataset.state, $("say").textContent].join("|"));
     $("tryExample").click();
     ok("example loads", resumeEl.value.includes("ALEX RIVERA") && !$("exampleNote").hidden && $("padName").textContent.includes("example"));
     ok("example docx name", (fileLabel.name).replace(/\.[^.]+$/, "").replace(/\(example\)|\b(resume|cv)\b/gi, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") === "alex-rivera");
@@ -268,7 +268,7 @@ async function pdfText(blob) {
     ok("certs: an HR target gets HR certifications, not project or cloud ones", ids("uk", "HR Advisor").includes("cipd-level5") && !ids("uk", "HR Advisor").some(x => /prince2|aws|azure/.test(x)), ids("uk", "HR Advisor").join());
     ok("certs: an AI target gets AI, data and cloud, not HR or finance", ids("ca", "Junior AI Engineer").includes("aws-ai-practitioner") && ids("ca", "Junior AI Engineer").includes("pl-300") && !ids("ca", "Junior AI Engineer").some(x => /cphr|cpa|shrm/.test(x)), ids("ca", "Junior AI Engineer").length);
     ok("certs: 'it' in a sentence isn't IT support; unknown fields get the whole list", !certFields("I made it work").has("it") && certFields("IT Support Analyst").has("it") && ids("ca", "Florist").length === certsFor(REGIONS.ca).length);
-    ok("certs: catalog goes only in the 'more' half, filtered by region", REVIEW_PROMPT("r", "", REGIONS.uk, "more").includes("cipd-level5") && !REVIEW_PROMPT("r", "", REGIONS.ca, "more").includes("cipd-level5") && !REVIEW_PROMPT("r", "", REGIONS.ca, "core").includes("aws-ai-practitioner"));
+    ok("certs: catalog goes only in its own small request, filtered by region", REVIEW_PROMPT("r", "", REGIONS.uk, "certs").includes("cipd-level5") && !REVIEW_PROMPT("r", "", REGIONS.ca, "certs").includes("cipd-level5") && !REVIEW_PROMPT("r", "", REGIONS.uk, "more").includes("cipd-level5") && REVIEW_PROMPT("r", "", REGIONS.uk, "certs").startsWith("You are the hiring manager for this role") && REVIEW_PROMPT("r", "Junior AI Engineer", REGIONS.ca, "certs").length < 6000 && !REVIEW_PROMPT("r", "", REGIONS.ca, "core").includes("aws-ai-practitioner"));
     ok("certs: every entry has an official https link and a region", CERTS.length > 90 && CERTS.every(c => /^https:\/\//.test(c.url) && c.regions.length && c.name && c.why_demand && Number.isFinite(c.months)), CERTS.filter(c => !/^https:/.test(c.url)).map(c => c.id).join());
     // clearing
     $("go-review").click(); await wait(400);
