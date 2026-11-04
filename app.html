@@ -1368,7 +1368,7 @@ const CERTS = [
   {"id": "nngroup-ux-certification", "name": "NN/g UX Certification", "issuer": "Nielsen Norman Group", "level": "professional", "regions": ["all"], "months": 0, "also": ["NN/g UX Certification", "UX Certified (Nielsen Norman Group)"], "prereq": "Attend 5 NN/g live online courses and pass an exam for each within 35 days (30 questions, 80% to pass, USD 95 each). No experience required. Does not expire. Total about USD 6,500.", "why_demand": "A respected UX credential from Nielsen Norman Group.", "url": "https://www.nngroup.com/ux-certification/"}
 ];
 const certsFor = (r) => CERTS.filter(c => c.regions.includes("all") || c.regions.includes(r.id));
-const certCatalog = (r) => certsFor(r).map(c => [c.id, c.name, c.level, c.months ? `needs ${c.months / 12} ${c.months === 12 ? "year" : "years"} of experience` : "no experience needed"].join(" | ")).join("\n");
+const certCatalog = (r) => certsFor(r).map(c => [c.id, c.name, c.issuer, c.level, c.months ? `needs ${c.months / 12} ${c.months === 12 ? "year" : "years"} of experience` : "no experience needed"].join(" | ")).join("\n");
 // The review is asked for in two halves that run at the same time ("core": score and plan; "more": checks, roles, interview prep).
 // Each half writes about half as much, and writing is what takes the time, so the whole review arrives in roughly half the wait.
 const REVIEW_PROMPT = (resume, target, r = R(), part = "all") => `You are the hiring manager for this role, working with a senior recruiter who has screened thousands of ${r.doc === "resume" ? "resumes" : "CVs"} in ${r.name}. The candidate is applying for jobs in ${r.name}. Today's date is ${today(REGIONS.us)}: judge every date on the resume against it (a job that ended last month is recent, not in the future). Review this resume the way they really do, in two passes, and be honest. Quote actual lines from the resume. No generic advice. Never invent facts about the candidate.
@@ -1413,7 +1413,7 @@ ${part !== "more" ? `  "rubric": [{"key": "relevance" | "impact" | "progression"
   "screen_questions": [{"q": "a question the recruiter or hiring manager is likely to ask because of something specific on this resume", "why": "what on the resume prompts it and what they want to learn", "answer": "how to answer well, naming the real project, job or result from the resume to use (STAR: situation, task, action, result). Don't assume technical details the resume doesn't state: say \"if you used X, explain...\" instead"}],
   "explain": [{"item": "something on this resume to be ready to explain calmly (a gap, a short job, a career change, an overseas degree, a missing requirement)", "frame": "a one-line honest way to talk about it"}],
   "roles": [{"title": "a job title exactly as job postings in ${r.name} write it", "fit": "strong" | "good" | "stretch", "months": number of months of DATED work on the resume in this role's field (count from the job dates; projects and education count as 0), "in_target": true or false, "why": "the resume evidence that qualifies them, quoted or cited", "gap": "what they'd need to show or fix to land this one, or empty", "search": "2-4 words to type into a job board for this role"}],
-  "certs": [{"id": "an id copied exactly from the CERTIFICATIONS list below", "why": "why it helps THIS candidate land the target role: the gap it fills or the skill it proves, citing the resume"}]` : ""}
+  "certs": [{"id": "an id copied exactly from the certifications list below", "why": "one sentence on which gap on THIS resume it fills for the target role, citing the resume. Don't describe the certification itself (its vendor, cost, difficulty or content): the page shows those facts"}]` : ""}
 }
 ${part !== "more" ? `Include all 6 rubric parts. Score bands: 75-100 = "Advance to screen", 55-74 = "Maybe pile", 0-54 = "Pass". The verdict must match the score band.
 Give 3-4 strengths, 3-5 missing items, 0-3 red flags and 2-3 rewrites. Most resumes have no red flags; return [] rather than inventing one. Separators such as | or • in a contact line, and full stops at the end of bullets, are fine for applicant tracking systems: don't flag them.
@@ -1428,11 +1428,12 @@ Roles: list the jobs this person should apply to now, the way a recruiter matche
 - Target-adjacent roles count as in_target: true (for an AI engineer target: ML engineer, LLM or GenAI developer, AI solutions or applied AI roles, AI-focused software developer, AI support or implementation roles). Use the titles employers in ${r.name} post (for example on ${r.boards.map(b => b[0]).join(", ")}), not invented ones.
 - Each "why" must point to real lines in the resume. If the resume can't support a role, leave it out.
 
-Certifications: pick 2-4 that would most help this person get the target role, ONLY from this list (id | name | level | experience the issuer requires):
+Certifications: pick 2-4 that job posts for the target role in ${r.name} commonly ask for, ONLY from this list (id | name | issuer | level | experience the issuer requires):
 ${certCatalog(r)}
 - Never pick one the resume already lists, or a lower one in a track they already passed.
 - Respect the experience it requires: if the resume's dated experience doesn't meet it, pick an entry-level one instead.
-- Prefer one that fills a gap a hiring manager would notice for the target role over one that repeats what the resume already proves. If nothing on the list fits the target, return [].
+- Pick certifications for the target role's own field (an HR role gets HR certifications, a data role gets data ones). Add one from another field only if posts for the target role commonly name it.
+- Prefer one that fills a gap a hiring manager would notice over one that repeats what the resume already proves. If nothing on the list fits the target, return [].
 ` : ""}Keep every note, why and fix to one short sentence: the candidate reads this on a phone.
 Judge the resume against ${r.name} and ATS standards:
 
