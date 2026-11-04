@@ -10,8 +10,9 @@ page() { # name, head scripts, test script
 page main  '<script>try{localStorage.clear();sessionStorage.clear()}catch(e){}</script><script src="../mock.js"></script><script src="../files.js"></script>' tests.js
 page reload '<script src="../mock.js"></script><script src="../seed.js"></script>' reload.js
 page puter '<script>try{localStorage.clear();sessionStorage.clear()}catch(e){}</script><script src="../mock.js"></script><script src="../puter-mock.js"></script>' puter-tests.js
+page relay '<script>try{localStorage.clear();sessionStorage.clear()}catch(e){}</script><script src="../mock.js"></script><script src="../puter-mock.js"></script><script src="../relay-mock.js"></script>' relay-tests.js
 fail=0
-for n in main reload puter; do
+for n in main reload puter relay; do
   "$CHROME" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=40000 --dump-dom "file://$PWD/$OUT/$n.html" 2>/dev/null \
     | python3 -c "
 import sys,re,json,html
