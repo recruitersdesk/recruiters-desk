@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="20261106102007">
+<meta name="build" content="20261106102427">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="canonical" href="https://recruiters-desk.pages.dev/">
 <script>if (/\.github\.io$/.test(location.hostname)) location.replace("https://recruiters-desk.pages.dev/" + location.search + location.hash)</script>
@@ -688,6 +688,7 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
             <ol class="sendlist">
               <li id="sendBrackets"></li>
               <li id="sendLength"></li>
+              <li id="sendTell" hidden></li>
               <li id="sendClaims" hidden></li>
               <li><span><b>Find the hiring manager's name.</b> Check the job post, the company's LinkedIn page or its team page. "Dear Hiring Manager," is fine if you can't find it.</span></li>
               <li><span><b>Read it out loud once.</b> Change any line that doesn't sound like you. Recruiters spot letters that read as generic.</span></li>
@@ -1592,9 +1593,17 @@ ${regionRules(r)}
 ${ATS}`;
 
 // hiring managers skim: a standard letter is about 200 words, in short paragraphs of 2-3 sentences
-const LENGTHS = { short: "about 150 words: 3 short paragraphs, one achievement", standard: "about 200 words: 4 short paragraphs, two achievements", detailed: "about 280 words: 4-5 short paragraphs, three achievements" };
+const LENGTHS = {
+  short: "120-160 words in exactly 3 paragraphs: the opening, ONE achievement paragraph, then the closing paragraph",
+  standard: "180-230 words in exactly 4 paragraphs: the opening, TWO achievement paragraphs (a different piece of work in each), then the closing paragraph",
+  detailed: "250-320 words in exactly 5 paragraphs: the opening, THREE achievement paragraphs (a different piece of work in each), then the closing paragraph",
+};
 const WORDS = { short: 150, standard: 200, detailed: 280 };
-const TONES = { professional: "polished and professional", warm: "warm, personable and genuine", direct: "direct, confident and concise" };
+const TONES = {
+  professional: "polished and professional: complete, measured sentences and no contractions",
+  warm: "warm and personable: conversational, with contractions (I've, I'd, I'm); include one sentence of genuine interest in what the team is building, taken from the post; the close sounds friendly, not formal",
+  direct: "direct and concise: the shortest sentences of any tone, each paragraph starts with the result, no softeners (\"I believe\", \"I feel\", \"I would welcome the opportunity\"); the close is a plain ask, e.g. \"I'd like to talk about how I can help.\"",
+};
 const today = (r = R()) => new Date().toLocaleDateString(r.locale, { year: "numeric", month: "long", day: "numeric" });
 const LETTER_PROMPT = (resume, jd, toneKey, lenKey, r = R()) => `Write a tailored cover letter for this candidate and this job, in the standard business-letter format used in ${r.name}, and ATS-friendly. Write it in the language of the job post (English unless the post is written in another language).
 
@@ -1610,16 +1619,18 @@ Layout, as plain text lines, in this order:
 Rules:
 - Use ONLY facts from the resume. Never invent employers, numbers, skills or achievements. Every claim must trace to a specific line of the resume: no frequency words ("daily", "routinely"), soft skills or activities (presenting, mentoring, cross-functional work) unless the resume says them, and a skill that only appears in a skills list is "experience with", not daily use.
 Write it the way a busy hiring manager reads: in under a minute, looking for "can this person do the job, and what will they bring to my team?"
-- Paragraph 1 (2 sentences): name the exact role, then the single strongest proof from the resume that they can do it.
-- Then one short paragraph per achievement (2-3 sentences each): what they did, the result, and which requirement in the post it answers. Choose the achievements that match the post's top requirements.
-- Then 1-2 sentences on what they would bring to this team, based only on what the post says the team does.
-- End with one sentence asking for a conversation. Never open with "I am applying for", "I am writing to", "I'm excited to apply" or similar: open with the proof.
+- Length and shape: ${LENGTHS[lenKey]}. If the resume doesn't hold enough real material for this length, write less rather than pad or invent.
+- The opening (2 sentences): one thing the team needs, from the post, and the single strongest proof from the resume that the candidate has done it. Name the exact job title.
+- Each achievement paragraph (2-3 sentences): what they did, the result if the resume states one, and the need in the post it answers.
+- The closing paragraph: 1-2 sentences on what they would bring to this team, then one sentence asking for a conversation. Never open with "I am applying for", "I am writing to", "I'm excited to apply" or similar: open with the proof.
 - If there's an obvious gap, don't apologize for it; show adjacent evidence instead.
-- Show, don't claim: let the achievement prove the fit. Never write that experience "aligns with", "mirrors", "matches" or "meets the need for" the role, that it "shows the experience required", or that it is "exactly what you need".
+- Show, don't claim: let the achievement prove the fit, and never comment on it. Never write "this demonstrates", "showing my ability", "aligns with", "mirrors", "matches", "directly addresses the requirement", "satisfies the requirement" or "exactly what you need".
+  Telling (don't): "This demonstrates experience building RAG pipelines, which directly addresses your requirement."
+  Showing (do): "Your team is building LLM tools for clinicians. At Northwind I built a RAG search tool over 12,000 documents, and it cut lookup time by 40%."
 - Keep each fact exactly as big as the resume says it. If the resume says "helped", "assisted" or "contributed to", keep that; never upgrade it to "built", "led" or "migrated". Never add a result (faster, shortened, reduced, improved, saved) or a tool that the resume doesn't state for that piece of work.
 - Plain, short sentences: under 25 words each, everyday words, no dashes joining clauses.
 - No lists of tools or skills: name at most two tools in a sentence, and only where they prove an achievement. The resume already lists the full stack.
-- Tone: ${TONES[toneKey]}. Body length: ${LENGTHS[lenKey]}. The whole letter must fit on one page.
+- Tone: ${TONES[toneKey]}. The whole letter must fit on one page.
 - Use the job's key terms exactly as the post writes them, and its exact job title, so an applicant tracking system matches them. Plain text only: no bullets, symbols, emoji, tables or bold.
 - Spelling: ${r.spelling}, throughout.
 - No personal details beyond the contact line (no age, photo, marital or family status, religion or ID numbers). Mention work eligibility${r.work ? ` (e.g. ${r.work})` : ""} only if the resume states it.
@@ -2291,6 +2302,11 @@ function sendCheck() {
   lg.hidden = !words; lg.className = long ? "" : "ok";
   lg.replaceChildren(h("span", {}, long ? h("b", {}, `It's ${words} words; aim for about ${want}.`) : h("b", {}, `${words} words: quick to read.`),
     long ? " Hiring managers skim. Cut the weakest paragraph or any list of tools, or pick a shorter length and click Rewrite." : " A hiring manager can read it in under a minute."));
+  // sentences that comment on the fit instead of showing it read as filler to a hiring manager
+  const TELL = /\b(I am applying for|I'm applying for|this demonstrates|demonstrat(?:es|ing) (?:my |the )?\w+|showing (?:my |the )?(?:ability|capability|experience)|aligns? (?:directly )?with|directly (?:addresses|aligns|matches)|satisf(?:y|ies|ying) the requirement|leverag\w+)\b/gi;
+  const tells = [...new Set((t.match(TELL) || []).map(x => x.toLowerCase()))], tl = $("sendTell");
+  tl.hidden = !tells.length;
+  if (tells.length) tl.replaceChildren(h("span", {}, h("b", {}, "Cut the phrases that tell instead of show: "), tells.map(w => `"${w}"`).join(", "), ". Let the achievement speak for itself."));
   // claim words the AI likes to add that aren't on the resume: the applicant should confirm or cut each one
   const res = resumeEl.value.toLowerCase(), claims = [...new Set((t.match(CLAIMS) || []).map(x => x.toLowerCase()))].filter(w => !res.includes(w));
   const cl = $("sendClaims"); cl.hidden = !claims.length;

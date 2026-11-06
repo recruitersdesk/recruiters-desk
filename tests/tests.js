@@ -79,7 +79,7 @@ async function pdfText(blob) {
     const c3 = __calls.at(-1), L = $("letter").textContent;
     ok("letter: streamed text shown", L.includes("Priya Sharma") && L.includes("<what>"), L);
     ok("letter: Canadian format asked for", c3.input.includes("business-letter format used in Canada") && c3.input.includes("Dear Hiring Manager,") && /Re: Application for/.test(c3.input) && /\w+ \d{1,2}, 20\d\d/.test(c3.input));
-    ok("letter: default settings sent, no cache", c3.kind === "text" && c3.input.includes("about 200 words") && c3.input.includes("polished and professional") && c3.opts.cache === false);
+    ok("letter: default settings sent, no cache", c3.kind === "text" && c3.input.includes("180-230 words in exactly 4 paragraphs") && c3.input.includes("polished and professional") && c3.opts.cache === false);
     ok("letter: copy + download enabled", !$("copyLetter").disabled && !$("dlLetter").disabled);
     ok("letter: before-you-send list counts brackets", !$("beforeSend").hidden && $("sendBrackets").textContent.startsWith("Fill in 1 blank"), $("sendBrackets").textContent);
     $("letter").textContent = "Dear Ms. Lee,\n\nSincerely,\nPriya"; $("letter").dispatchEvent(new Event("input"));
@@ -99,7 +99,7 @@ async function pdfText(blob) {
     ok("letter PDF filename", /Cover-Letter\.pdf$/.test(__saved?.filename || ""), __saved?.filename);
     $("letter").textContent = L;
     $("tone").value = "direct"; $("length").value = "short"; $("rewrite").click(); await wait(400);
-    ok("rewrite uses new tone + length", __calls.at(-1).input.includes("direct, confident and concise") && __calls.at(-1).input.includes("about 150 words"));
+    ok("rewrite uses new tone + length", __calls.at(-1).input.includes("direct and concise") && __calls.at(-1).input.includes("120-160 words in exactly 3 paragraphs"));
     resumeEl.value += "\nCertifications: AWS Cloud Practitioner"; fire(resumeEl); await wait(10);
     ok("letter flagged stale after resume edit", !$("stale").hidden);
     ok("stale note names what changed + offers a re-run", $("stale").textContent.startsWith("Your resume has changed") && $("stale").querySelector("button")?.textContent === "Rewrite the letter", $("stale").textContent);
@@ -173,7 +173,7 @@ async function pdfText(blob) {
     showLetter(lb, keepL);
     ok("PDF: a bullet starting a line stays a list item; between details it becomes a middle dot", pdfSafe("• Built X\nToronto • 416 • a@b.co") === "- Built X\nToronto · 416 · a@b.co", pdfSafe("• Built X\nToronto • 416 • a@b.co"));
     ok("letter: the word count covers only the body", bodyWords("Name\nCity\n\nDate\n\nDear Hiring Manager,\n\none two three four\n\nfive six\n\nSincerely,\nName") === 6);
-    ok("letter prompt: short sentences, no tool lists, show don't claim, ~200 words by default", LETTER_PROMPT("r", "j", "professional", "standard").includes("about 200 words") && LETTER_PROMPT("r", "j", "professional", "standard").includes("No lists of tools") && LETTER_PROMPT("r", "j", "professional", "standard").includes("Show, don't claim"));
+    ok("letter prompt: short sentences, no tool lists, show don't claim, ~200 words by default", LETTER_PROMPT("r", "j", "professional", "standard").includes("180-230 words") && LETTER_PROMPT("r", "j", "professional", "short").includes("ONE achievement") && LETTER_PROMPT("r", "j", "warm", "standard").includes("contractions") && LETTER_PROMPT("r", "j", "professional", "standard").includes("No lists of tools") && LETTER_PROMPT("r", "j", "professional", "standard").includes("Show, don't claim"));
     ok("letter prompt: facts stay as big as the resume says ('helped' stays 'helped'; no added results)", LETTER_PROMPT("r", "j", "professional", "standard").includes('If the resume says "helped"') && LETTER_PROMPT("r", "j", "professional", "standard").includes("Never add a result"));
     ok("letter check: results the resume doesn't state are flagged ('shortened', 'improved')", (("This shortened deployment cycles and improved uptime.".match(CLAIMS) || []).length === 2));
     ok("lists from the model can't break the page with a null", arr([null, { a: 1 }, undefined]).length === 1);
