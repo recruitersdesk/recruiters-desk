@@ -174,6 +174,8 @@ async function pdfText(blob) {
     ok("PDF: a bullet starting a line stays a list item; between details it becomes a middle dot", pdfSafe("• Built X\nToronto • 416 • a@b.co") === "- Built X\nToronto · 416 · a@b.co", pdfSafe("• Built X\nToronto • 416 • a@b.co"));
     ok("letter: the word count covers only the body", bodyWords("Name\nCity\n\nDate\n\nDear Hiring Manager,\n\none two three four\n\nfive six\n\nSincerely,\nName") === 6);
     ok("letter prompt: short sentences, no tool lists, show don't claim, ~200 words by default", LETTER_PROMPT("r", "j", "professional", "standard").includes("about 200 words") && LETTER_PROMPT("r", "j", "professional", "standard").includes("No lists of tools") && LETTER_PROMPT("r", "j", "professional", "standard").includes("Show, don't claim"));
+    ok("letter prompt: facts stay as big as the resume says ('helped' stays 'helped'; no added results)", LETTER_PROMPT("r", "j", "professional", "standard").includes('If the resume says "helped"') && LETTER_PROMPT("r", "j", "professional", "standard").includes("Never add a result"));
+    ok("letter check: results the resume doesn't state are flagged ('shortened', 'improved')", (("This shortened deployment cycles and improved uptime.".match(CLAIMS) || []).length === 2));
     ok("lists from the model can't break the page with a null", arr([null, { a: 1 }, undefined]).length === 1);
     // style nits never lead the plan
     const ps = planSteps({ red_flags: [{ issue: "Inconsistent bullet punctuation – some end with periods" }, { issue: "Contact line uses pipes (|)" }, { issue: "Misspelled \"Pyhton\" (should be \"Python\")" }], missing: [{ item: "Numbers" }] });

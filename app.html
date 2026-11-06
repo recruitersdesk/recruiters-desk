@@ -1591,9 +1591,10 @@ Write it the way a busy hiring manager reads: in under a minute, looking for "ca
 - Paragraph 1 (2 sentences): name the exact role, then the single strongest proof from the resume that they can do it.
 - Then one short paragraph per achievement (2-3 sentences each): what they did, the result, and which requirement in the post it answers. Choose the achievements that match the post's top requirements.
 - Then 1-2 sentences on what they would bring to this team, based only on what the post says the team does.
-- End with one sentence asking for a conversation. Never open with "I am writing to", "I'm excited to apply" or similar.
+- End with one sentence asking for a conversation. Never open with "I am applying for", "I am writing to", "I'm excited to apply" or similar: open with the proof.
 - If there's an obvious gap, don't apologize for it; show adjacent evidence instead.
-- Show, don't claim: let the achievement prove the fit. Never write that experience "aligns with", "mirrors" or "matches" the role, or that it is "exactly what you need".
+- Show, don't claim: let the achievement prove the fit. Never write that experience "aligns with", "mirrors", "matches" or "meets the need for" the role, that it "shows the experience required", or that it is "exactly what you need".
+- Keep each fact exactly as big as the resume says it. If the resume says "helped", "assisted" or "contributed to", keep that; never upgrade it to "built", "led" or "migrated". Never add a result (faster, shortened, reduced, improved, saved) or a tool that the resume doesn't state for that piece of work.
 - Plain, short sentences: under 25 words each, everyday words, no dashes joining clauses.
 - No lists of tools or skills: name at most two tools in a sentence, and only where they prove an achievement. The resume already lists the full stack.
 - Tone: ${TONES[toneKey]}. Body length: ${LENGTHS[lenKey]}. The whole letter must fit on one page.
@@ -2273,7 +2274,8 @@ function sendCheck() {
   const cl = $("sendClaims"); cl.hidden = !claims.length;
   if (claims.length) cl.replaceChildren(h("span", {}, h("b", {}, "Check these words are true for you: "), claims.map(w => `"${w}"`).join(", "), ". They're in the letter but not on your resume. Keep them only if they're accurate."));
 }
-const CLAIMS = /\b(daily|every day|routinely|regularly|stakeholders?|cross-functional|mentor(ed|ing)?|led a team|managed a team|presented|presenting|spearheaded|expert|expertise|proven|passionate|clear communication)\b/gi;
+// words the AI tends to add that a resume often doesn't support: frequency, leadership, and results ("shortened", "improved")
+const CLAIMS = /\b(daily|every day|routinely|regularly|stakeholders?|cross-functional|mentor(ed|ing)?|led a team|managed a team|presented|presenting|spearheaded|expert|expertise|proven|passionate|clear communication|shortened|reduced|improved|increased|accelerated|streamlined|optimi[sz]ed|boosted|saved|faster)\b/gi;
 $("letter").addEventListener("input", () => { sendCheck(); if (outs.letter != null) { outs.letter = letterText(); clearTimeout(sendCheck.t); sendCheck.t = setTimeout(() => saveOuts(), 500); } });
 async function runLetter(sample, resume, jd) {
   const box = $("letter"), state = $("letterState");
