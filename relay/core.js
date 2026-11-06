@@ -85,7 +85,7 @@ export async function handle(req, env) {
   try {
     // quick reasoning for the review halves ("medium" took over 80s); careful for letters, which are short and must not embellish
     const effort = wantsJson ? "low" : "medium";
-    const ask = () => env.AI.run(MODEL, { input, reasoning: { effort }, max_output_tokens: wantsJson ? 12000 : 5000 });
+    const ask = () => env.AI.run(MODEL, { input, reasoning: { effort }, max_output_tokens: wantsJson ? 12000 : 9000 });
     const bad = (t) => !t.trim() || LEAK.test(t) || (wantsJson && !hasJson(t));
     let text = textOf(await ask());
     // one redo if it came back empty, cut off, or with leaked reasoning, and only if the visitor has allowance left

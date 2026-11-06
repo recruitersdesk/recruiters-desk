@@ -2306,12 +2306,14 @@ $("letter").addEventListener("input", () => { sendCheck(); if (outs.letter != nu
 // After the letter arrives: cut what the model adds despite its instructions. This only ever removes words, so it can't make
 // anything up: commentary clauses (", demonstrating my ability to..."), sentences that judge the fit ("This aligns with..."),
 // and result clauses the resume doesn't support (", improving reliability"). It also rejoins sentences split onto separate lines.
-const COMMENT = /,\s*(?:demonstrating|showing|proving|highlighting|reflecting|evidencing|giving me)\b[^.!?\n]*(?=[.!?])/gi;
+const COMMENT = /,\s*(?:demonstrating|showing|proving|highlighting|reflecting|evidencing|giving me|aligning|matching|meeting|fitting|satisfying|addressing)\b[^.!?\n]*(?=[.!?])|,\s*and [^.!?\n]*\b(?:fits|matches|meets|satisfies)\b[^.!?\n]*(?=[.!?])/gi;
 const RESULT = /,\s*(?:ensuring|providing|enabling|improving|reducing|streamlining|increasing|boosting|accelerating|further \w+ing)\b[^.!?\n]*(?=[.!?])/gi;
-const JUDGE = /(?:^|(?<=[.!?]\s))(?:This|These|That|Such)\b[^.!?\n]*\b(?:aligns?|meets?|satisf(?:y|ies)|supports?|demonstrates?|shows?|proves?|reflects?|gives? me|positions? me)\b[^.!?\n]*[.!?]\s*/g;
+const JUDGE = /(?:^|(?<=[.!?]\s))(?:This|These|That|Such)\b[^.!?\n]*\b(?:aligns?|meets?|satisf(?:y|ies)|supports?|demonstrates?|shows?|proves?|reflects?|gives? me|positions? me|provides|ensures|means)\b[^.!?\n]*[.!?]\s*/g;
 const WHICH = /,\s*which (?:proved|proves|shows|showed|demonstrates|demonstrated|highlights)\b[^.!?\n]*(?=[.!?])/gi;
 const STOP = new Set("with that this from into their your have been were they them what which when where also more most such than then over each other about after before using used".split(" "));
-function cleanLetter(text, resume) {
+// how many body paragraphs each length may have: the opening, its achievements, the closing
+const PARAS = { short: 3, standard: 4, detailed: 5 };
+function cleanLetter(text, resume, lenKey) {
   const have = new Set(words(resume)), supported = (clause) => { const w = words(clause).filter(x => x.length > 3 && !STOP.has(x)); return w.length && w.filter(x => have.has(x)).length / w.length >= 0.6; };
   const lines = str(text).replace(/\r/g, "").split("\n"), hi = lines.findIndex(l => /^(dear|sehr geehrte|hello|hi)\b/i.test(l.trim()));
   if (hi < 0) return { text, removed: 0 };
@@ -2322,8 +2324,13 @@ function cleanLetter(text, resume) {
   const tidy = paras.map(p => {
     let q = p.replace(COMMENT, () => (removed++, "")).replace(WHICH, () => (removed++, ""))
       .replace(RESULT, (m) => supported(m) ? m : (removed++, "")).replace(JUDGE, () => (removed++, ""));
+    // "proven" is a claim; keep it only where the resume says it
+    if (!have.has("proven")) q = q.replace(/\bproven\s+/gi, () => (removed++, ""));
     return q.replace(/\s{2,}/g, " ").replace(/\s+([.,!?])/g, "$1").trim();
   }).filter(Boolean);
+  // the chosen length decides the shape: extra achievement paragraphs are dropped from the middle (opening and closing stay)
+  const cap = PARAS[lenKey];
+  if (cap && tidy.length > cap) { removed += tidy.length - cap; tidy.splice(cap - 1, tidy.length - cap); }
   return { text: [...lines.slice(0, hi + 1), "", tidy.join("\n\n"), "", ...lines.slice(last)].join("\n").replace(/\n{3,}/g, "\n\n"), removed };
 }
 async function runLetter(sample, resume, jd) {
@@ -2335,11 +2342,11 @@ async function runLetter(sample, resume, jd) {
       cache: false, signal: ctl.signal,
       onText: ({ text }) => { showLetter(box, text); if (state.firstChild) { state.replaceChildren(); say("Writing it now. I'm only using what's actually on your resume."); } },
     }).then(r => { if (/<\|(start|end|channel|message|return)\|>|^\s*analysis\s*:/i.test(r?.text || box.textContent)) { box.textContent = ""; throw { code: "invalid_json" }; } return r; });
-    const clean = cleanLetter(letterText(box), resume);
+    const clean = cleanLetter(letterText(box), resume, $("length").value);
     showLetter(box, clean.text);
     lastRun.letter = inputKey("letter"); outs.letter = letterText(box); saveOuts("letter"); refreshStale(); sendCheck();
     mood("idle");
-    say(`Here's your letter. ${clean.removed ? `I cut ${clean.removed} ${clean.removed === 1 ? "phrase" : "phrases"} that described your experience instead of showing it, or claimed results your resume doesn't state. ` : ""}Read it once, fill in the [brackets], and make it sound like you.`);
+    say(`Here's your letter. ${clean.removed ? `I cut ${clean.removed} ${clean.removed === 1 ? "phrase" : "phrases"} that described your experience instead of showing it, claimed something your resume doesn't state, or made it longer than you asked. ` : ""}Read it once, fill in the [brackets], and make it sound like you.`);
   } catch (e) {
     if (e?.text) showLetter(box, e.text);
     state.replaceChildren(e?.code === "cancelled" ? h("span", { class: "muted" }, "Stopped.") : errorBlock(e, "letter"));
