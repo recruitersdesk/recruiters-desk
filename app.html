@@ -2307,7 +2307,10 @@ $("letter").addEventListener("input", () => { sendCheck(); if (outs.letter != nu
 // anything up: commentary clauses (", demonstrating my ability to..."), sentences that judge the fit ("This aligns with..."),
 // and result clauses the resume doesn't support (", improving reliability"). It also rejoins sentences split onto separate lines.
 const COMMENT = /,\s*(?:demonstrating|showing|proving|highlighting|reflecting|evidencing|giving me|aligning|matching|meeting|fitting|satisfying|addressing)\b[^.!?\n]*(?=[.!?])|,\s*and [^.!?\n]*\b(?:fits|matches|meets|satisfies)\b[^.!?\n]*(?=[.!?])/gi;
-const RESULT = /,\s*(?:ensuring|providing|enabling|improving|reducing|streamlining|increasing|boosting|accelerating|further \w+ing)\b[^.!?\n]*(?=[.!?])/gi;
+const RESULT = /,\s*(?:ensuring|providing|enabling|improving|reducing|streamlining|increasing|boosting|accelerating|delivering|extending|supporting|reinforcing|further \w+ing)\b[^.!?\n]*(?=[.!?])/gi;
+// any sentence that talks about meeting the employer's "need" or "requirement" is commentary, wherever it starts
+const NEEDS = /(?:^|(?<=[.!?]\s))[^.!?\n]*\b(?:your|the) (?:need|needs|requirements?)\b[^.!?\n]*\b(?:satisf\w*|met|meets?|address\w*|match\w*|fulfil\w*)\b[^.!?\n]*[.!?]\s*|(?:^|(?<=[.!?]\s))[^.!?\n]*\b(?:satisf\w*|met|meets?|address\w*|match\w*|fulfil\w*) (?:your|the) (?:need|needs|requirements?)\b[^.!?\n]*[.!?]\s*/gi;
+const THAT_ALIGN = /,?\s*(?:that|which) (?:align|aligns|match|matches|fit|fits) (?:with|to)?\s*[^.!?\n]*(?=[.!?])/gi;
 const JUDGE = /(?:^|(?<=[.!?]\s))(?:This|These|That|Such)\b[^.!?\n]*\b(?:aligns?|meets?|satisf(?:y|ies)|supports?|demonstrates?|shows?|proves?|reflects?|gives? me|positions? me|provides|ensures|means)\b[^.!?\n]*[.!?]\s*/g;
 const WHICH = /,\s*which (?:proved|proves|shows|showed|demonstrates|demonstrated|highlights)\b[^.!?\n]*(?=[.!?])/gi;
 const STOP = new Set("with that this from into their your have been were they them what which when where also more most such than then over each other about after before using used".split(" "));
@@ -2323,7 +2326,8 @@ function cleanLetter(text, resume, lenKey) {
   let removed = 0;
   const tidy = paras.map(p => {
     let q = p.replace(COMMENT, () => (removed++, "")).replace(WHICH, () => (removed++, ""))
-      .replace(RESULT, (m) => supported(m) ? m : (removed++, "")).replace(JUDGE, () => (removed++, ""));
+      .replace(RESULT, (m) => supported(m) ? m : (removed++, "")).replace(JUDGE, () => (removed++, ""))
+      .replace(NEEDS, () => (removed++, "")).replace(THAT_ALIGN, () => (removed++, ""));
     // "proven" is a claim; keep it only where the resume says it
     if (!have.has("proven")) q = q.replace(/\bproven\s+/gi, () => (removed++, ""));
     return q.replace(/\s{2,}/g, " ").replace(/\s+([.,!?])/g, "$1").trim();
