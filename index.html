@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="20261106102427">
+<meta name="build" content="20261106103154">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="canonical" href="https://recruiters-desk.pages.dev/">
 <script>if (/\.github\.io$/.test(location.hostname)) location.replace("https://recruiters-desk.pages.dev/" + location.search + location.hash)</script>
@@ -1599,6 +1599,12 @@ const LENGTHS = {
   detailed: "250-320 words in exactly 5 paragraphs: the opening, THREE achievement paragraphs (a different piece of work in each), then the closing paragraph",
 };
 const WORDS = { short: 150, standard: 200, detailed: 280 };
+// one sentence per tone, about a bakery so its facts can't leak into anyone's letter; only the style is the point
+const TONE_STYLE = {
+  professional: 'formal and measured, no contractions. Style only (never copy its facts): "At Rosewood Bakery, I redesigned the ordering system, and weekly orders doubled."',
+  warm: 'friendly and personal, with contractions. Style only (never copy its facts): "I\'ve spent two years making ordering easier for busy customers, and I\'d love to do the same for your team."',
+  direct: 'blunt and brief, sentences under 15 words, result first. Style only (never copy its facts): "Weekly orders doubled. I redesigned Rosewood Bakery\'s ordering system to get there."',
+};
 const TONES = {
   professional: "polished and professional: complete, measured sentences and no contractions",
   warm: "warm and personable: conversational, with contractions (I've, I'd, I'm); include one sentence of genuine interest in what the team is building, taken from the post; the close sounds friendly, not formal",
@@ -1644,7 +1650,11 @@ ${jd}
 
 <resume>
 ${resume}
-</resume>`;
+</resume>
+
+Before you write, check these two things one last time:
+- Length and shape: ${LENGTHS[lenKey]}. Count the paragraphs between the greeting and the sign-off.
+- Tone: ${TONE_STYLE[toneKey]}`;
 
 /* ---------- accuracy checks run in code, so they don't depend on the model getting them right ---------- */
 const flat = (x) => str(x).toLowerCase().replace(/[^a-z0-9+#]+/g, "");
@@ -2315,6 +2325,29 @@ function sendCheck() {
 // words the AI tends to add that a resume often doesn't support: frequency, leadership, and results ("shortened", "improved")
 const CLAIMS = /\b(daily|every day|routinely|regularly|stakeholders?|cross-functional|mentor(ed|ing)?|led a team|managed a team|presented|presenting|spearheaded|expert|expertise|proven|passionate|clear communication|shortened|reduced|improved|increased|accelerated|streamlined|optimi[sz]ed|boosted|saved|faster)\b/gi;
 $("letter").addEventListener("input", () => { sendCheck(); if (outs.letter != null) { outs.letter = letterText(); clearTimeout(sendCheck.t); sendCheck.t = setTimeout(() => saveOuts(), 500); } });
+// After the letter arrives: cut what the model adds despite its instructions. This only ever removes words, so it can't make
+// anything up: commentary clauses (", demonstrating my ability to..."), sentences that judge the fit ("This aligns with..."),
+// and result clauses the resume doesn't support (", improving reliability"). It also rejoins sentences split onto separate lines.
+const COMMENT = /,\s*(?:demonstrating|showing|proving|highlighting|reflecting|evidencing|giving me)\b[^.!?\n]*(?=[.!?])/gi;
+const RESULT = /,\s*(?:ensuring|providing|enabling|improving|reducing|streamlining|increasing|boosting|accelerating|further \w+ing)\b[^.!?\n]*(?=[.!?])/gi;
+const JUDGE = /(?:^|(?<=[.!?]\s))(?:This|These|That|Such)\b[^.!?\n]*\b(?:aligns?|meets?|satisf(?:y|ies)|supports?|demonstrates?|shows?|proves?|reflects?|gives? me|positions? me)\b[^.!?\n]*[.!?]\s*/g;
+const WHICH = /,\s*which (?:proved|proves|shows|showed|demonstrates|demonstrated|highlights)\b[^.!?\n]*(?=[.!?])/gi;
+const STOP = new Set("with that this from into their your have been were they them what which when where also more most such than then over each other about after before using used".split(" "));
+function cleanLetter(text, resume) {
+  const have = new Set(words(resume)), supported = (clause) => { const w = words(clause).filter(x => x.length > 3 && !STOP.has(x)); return w.length && w.filter(x => have.has(x)).length / w.length >= 0.6; };
+  const lines = str(text).replace(/\r/g, "").split("\n"), hi = lines.findIndex(l => /^(dear|sehr geehrte|hello|hi)\b/i.test(l.trim()));
+  if (hi < 0) return { text, removed: 0 };
+  const last = lines.map((l, i) => l.trim() ? i : -1).filter(i => i > hi).slice(-2)[0] ?? lines.length;
+  // the body: paragraphs between the greeting and the sign-off, with stray line breaks inside a paragraph joined up
+  const paras = lines.slice(hi + 1, last).join("\n").split(/\n\s*\n/).map(p => p.split("\n").map(l => l.trim()).filter(Boolean).join(" ")).filter(Boolean);
+  let removed = 0;
+  const tidy = paras.map(p => {
+    let q = p.replace(COMMENT, () => (removed++, "")).replace(WHICH, () => (removed++, ""))
+      .replace(RESULT, (m) => supported(m) ? m : (removed++, "")).replace(JUDGE, () => (removed++, ""));
+    return q.replace(/\s{2,}/g, " ").replace(/\s+([.,!?])/g, "$1").trim();
+  }).filter(Boolean);
+  return { text: [...lines.slice(0, hi + 1), "", tidy.join("\n\n"), "", ...lines.slice(last)].join("\n").replace(/\n{3,}/g, "\n\n"), removed };
+}
 async function runLetter(sample, resume, jd) {
   const box = $("letter"), state = $("letterState");
   box.textContent = ""; $("copyLetter").disabled = true; $("dlLetter").disabled = true;
@@ -2324,9 +2357,11 @@ async function runLetter(sample, resume, jd) {
       cache: false, signal: ctl.signal,
       onText: ({ text }) => { showLetter(box, text); if (state.firstChild) { state.replaceChildren(); say("Writing it now. I'm only using what's actually on your resume."); } },
     }).then(r => { if (/<\|(start|end|channel|message|return)\|>|^\s*analysis\s*:/i.test(r?.text || box.textContent)) { box.textContent = ""; throw { code: "invalid_json" }; } return r; });
-    lastRun.letter = inputKey("letter"); outs.letter = letterText(box); saveOuts("letter"); refreshStale();
+    const clean = cleanLetter(letterText(box), resume);
+    showLetter(box, clean.text);
+    lastRun.letter = inputKey("letter"); outs.letter = letterText(box); saveOuts("letter"); refreshStale(); sendCheck();
     mood("idle");
-    say("Here's your letter. Read it once, fill in the [brackets], and make it sound like you.");
+    say(`Here's your letter. ${clean.removed ? `I cut ${clean.removed} ${clean.removed === 1 ? "phrase" : "phrases"} that described your experience instead of showing it, or claimed results your resume doesn't state. ` : ""}Read it once, fill in the [brackets], and make it sound like you.`);
   } catch (e) {
     if (e?.text) showLetter(box, e.text);
     state.replaceChildren(e?.code === "cancelled" ? h("span", { class: "muted" }, "Stopped.") : errorBlock(e, "letter"));
