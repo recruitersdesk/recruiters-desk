@@ -61,10 +61,11 @@ body {
 .privacy svg { width: 14px; height: 14px; color: var(--good); flex: none; }
 
 /* ---------- hero: photo + work panel ---------- */
-.hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr); grid-template-areas: "scene panel" "results results"; gap: 14px; align-items: start; }
-.hero > .scene { grid-area: scene; } .hero > .panel { grid-area: panel; } .hero > .results { grid-area: results; }
-@media (min-width: 961px) and (min-height: 800px) { .hero > .panel { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); } }
-@media (max-width: 960px) { .hero { grid-template-columns: minmax(0, 1fr); grid-template-areas: "scene" "panel" "results"; } }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+/* the desk and the work panel share a row of their own, so the panel's sticking stops where Sam's notes begin */
+.hero-top { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr); gap: 14px; align-items: start; min-width: 0; }
+@media (min-width: 961px) and (min-height: 800px) { .hero-top > .panel { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); } }
+@media (max-width: 960px) { .hero-top { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) {
   .bar-top { gap: 8px 10px; }
   .bar-top .tag, .bar-top .grow { display: none; }
@@ -350,6 +351,12 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   font: 15.5px/1.7 var(--font-body); white-space: pre-wrap; min-height: 180px; max-width: 76ch; box-shadow: 0 2px 0 var(--rule), 0 14px 30px -24px rgba(23, 32, 45, .4);
 }
 .letter:empty::before { content: "Your letter will appear here."; color: var(--faint); }
+.letter { white-space: normal; } .letter > div { white-space: pre-wrap; }
+.letter .l-name { font: 700 24px/1.25 var(--font-display); letter-spacing: -.01em; color: var(--ink); }
+.letter .l-contact { font-size: 13.5px; color: var(--muted); padding-bottom: 14px; border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
+.letter .l-subject { font-weight: 600; }
+.letter[data-region="de"] .l-date { text-align: right; }
+.letter .l-gap { line-height: .9; }
 .letter:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 .hint { font-size: 12.5px; color: var(--muted); }
 
@@ -512,6 +519,7 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   </nav>
 
   <div class="hero">
+    <div class="hero-top">
     <section class="card scene" id="scene" data-state="idle" data-has="0" aria-label="Sam's desk">
       <div class="photo">
         <img src="desk.jpg" alt="Sam, a recruiter, sitting at a desk and looking down at the resume in front of him" width="1536" height="1024">
@@ -614,6 +622,7 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
         </div>
       </div>
     </section>
+    </div>
 
     <section class="card results" id="results" aria-label="Sam's notes" hidden>
       <div class="rhead">
@@ -1085,7 +1094,7 @@ window.addEventListener("drop", (e) => { if (!hasFiles(e)) return; e.preventDefa
 /* ---------- DOM helpers (textContent only; model output never becomes HTML) ---------- */
 function h(tag, attrs, ...kids) {
   const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) { if (k === "class") el.className = v; else el.setAttribute(k, v); }
+  for (const [k, v] of Object.entries(attrs || {})) { if (v == null) continue; if (k === "class") el.className = v; else el.setAttribute(k, v); }
   for (const k of kids.flat()) if (k != null && k !== false) el.append(k instanceof Node ? k : String(k));
   return el;
 }
@@ -2236,7 +2245,7 @@ async function run(kind) {
 }
 // the first "before you send" item counts what's still in [brackets], live as the letter is edited
 function sendCheck() {
-  const t = $("letter").innerText || "", n = (t.match(/\[[^\]\n]{1,80}\]/g) || []).length, li = $("sendBrackets");
+  const t = letterText() || "", n = (t.match(/\[[^\]\n]{1,80}\]/g) || []).length, li = $("sendBrackets");
   $("beforeSend").hidden = !t.trim();
   li.className = n ? "" : "ok";
   li.replaceChildren(h("span", {}, n ? h("b", {}, `Fill in ${n} ${n === 1 ? "blank" : "blanks"} in [brackets].`) : h("b", {}, "No [brackets] left to fill."),
@@ -2247,7 +2256,7 @@ function sendCheck() {
   if (claims.length) cl.replaceChildren(h("span", {}, h("b", {}, "Check these words are true for you: "), claims.map(w => `"${w}"`).join(", "), ". They're in the letter but not on your resume. Keep them only if they're accurate."));
 }
 const CLAIMS = /\b(daily|every day|routinely|regularly|stakeholders?|cross-functional|mentor(ed|ing)?|led a team|managed a team|presented|presenting|spearheaded|expert|expertise|proven|passionate|clear communication)\b/gi;
-$("letter").addEventListener("input", () => { sendCheck(); if (outs.letter != null) { outs.letter = $("letter").innerText; clearTimeout(sendCheck.t); sendCheck.t = setTimeout(() => saveOuts(), 500); } });
+$("letter").addEventListener("input", () => { sendCheck(); if (outs.letter != null) { outs.letter = letterText(); clearTimeout(sendCheck.t); sendCheck.t = setTimeout(() => saveOuts(), 500); } });
 async function runLetter(sample, resume, jd) {
   const box = $("letter"), state = $("letterState");
   box.textContent = ""; $("copyLetter").disabled = true; $("dlLetter").disabled = true;
@@ -2255,13 +2264,13 @@ async function runLetter(sample, resume, jd) {
   try {
     await sample(LETTER_PROMPT(resume, jd, $("tone").value, $("length").value), {
       cache: false, signal: ctl.signal,
-      onText: ({ text }) => { box.textContent = text; if (state.firstChild) { state.replaceChildren(); say("Writing it now. I'm only using what's actually on your resume."); } },
+      onText: ({ text }) => { showLetter(box, text); if (state.firstChild) { state.replaceChildren(); say("Writing it now. I'm only using what's actually on your resume."); } },
     }).then(r => { if (/<\|(start|end|channel|message|return)\|>|^\s*analysis\s*:/i.test(r?.text || box.textContent)) { box.textContent = ""; throw { code: "invalid_json" }; } return r; });
-    lastRun.letter = inputKey("letter"); outs.letter = box.textContent; saveOuts("letter"); refreshStale();
+    lastRun.letter = inputKey("letter"); outs.letter = letterText(box); saveOuts("letter"); refreshStale();
     mood("idle");
     say("Here's your letter. Read it once, fill in the [brackets], and make it sound like you.");
   } catch (e) {
-    if (e?.text) box.textContent = e.text;
+    if (e?.text) showLetter(box, e.text);
     state.replaceChildren(e?.code === "cancelled" ? h("span", { class: "muted" }, "Stopped.") : errorBlock(e, "letter"));
     throw e;
   } finally {
@@ -2273,10 +2282,41 @@ async function runLetter(sample, resume, jd) {
 document.querySelectorAll(".action").forEach(b => b.onclick = () => run(b.dataset.kind));
 $("rewrite").onclick = () => run("letter");
 
+/* ---------- letter: one professional, ATS-safe layout; the country decides the details ---------- */
+// Lines stay plain text (what applicant tracking systems read); only their roles change how they look:
+// the name and contact line form a letterhead that matches the resume PDF, the subject line is bold,
+// and in Germany the date sits on the right (DIN 5008).
+function letterParts(text) {
+  const lines = str(text).replace(/\r/g, "").split("\n"), role = [];
+  let seen = 0, afterHead = false, subject = false;
+  lines.forEach((l, i) => {
+    const t = l.trim();
+    if (!t) { role[i] = "gap"; if (seen >= 2) afterHead = true; return; }
+    const n = seen++;
+    if (n === 0) role[i] = "name";
+    else if (n === 1 && !afterHead) role[i] = "contact";
+    else if (afterHead && !role.includes("date") && t.length < 40 && /\b(19|20)\d{2}\b/.test(t)) role[i] = "date";
+    else if (!subject && /^(re:|subject:|betreff:?|application for|bewerbung als)/i.test(t)) { role[i] = "subject"; subject = true; }
+    else role[i] = "";
+  });
+  return lines.map((t, i) => ({ text: t, role: role[i] }));
+}
+// the letter's text, read line by line (the browser's own reading drops line breaks while the panel is hidden)
+function letterText(box = $("letter")) {
+  const kids = [...box.childNodes];
+  if (!kids.length || !kids.every(k => k.nodeName === "DIV")) return box.innerText;
+  return kids.map(k => k.classList.contains("l-gap") && !k.textContent.trim() ? "" : k.innerText.replace(/\n$/, "") || k.textContent).join("\n");
+}
+function showLetter(box, text) {
+  box.dataset.region = $("region").value;
+  box.replaceChildren(...letterParts(text).map(({ text: t, role }) => role === "gap" ? h("div", { class: "l-gap" }, h("br")) : h("div", { class: role ? "l-" + role : null }, t)));
+}
+// Enter on the subject line would copy its bold style to the new line, so the roles are worked out again when editing ends
+$("letter").addEventListener("blur", () => { const t = letterText(); if (t.trim()) showLetter($("letter"), t.replace(/\n$/, "")); });
 /* ---------- letter: copy + PDF ---------- */
 $("copyLetter").onclick = async () => {
   const btn = $("copyLetter"), box = $("letter");
-  try { await navigator.clipboard.writeText(box.innerText); btn.textContent = "Copied"; }
+  try { await navigator.clipboard.writeText(letterText(box)); btn.textContent = "Copied"; }
   catch {
     const r = document.createRange(); r.selectNodeContents(box);
     const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
@@ -2289,7 +2329,8 @@ $("copyLetter").onclick = async () => {
 function pdfPlain(t) {
   return t.replace(/\r/g, "").replace(/\t/g, " ").replace(/[‐‑‒–—−]/g, "-").replace(/[‘’′]/g, "'").replace(/[“”″]/g, '"')
     .replace(/…/g, "...").replace(/[→➔➤]/g, "->").replace(/[   ]/g, " ").replace(/€/g, "EUR ")
-    .replace(/[•●▪‣⁃]\s*/g, "- ")
+    // a bullet that starts a line is a list item; one between words separates details ("Toronto · phone · email")
+    .replace(/^([ \t]*)[•●▪‣⁃]\s*/gm, "$1- ").replace(/[ \t]*[•●▪‣⁃][ \t]*/g, " · ")
     // letters with accents the fonts lack (Ł, š, č, ő) keep their base letter rather than becoming "?"
     .normalize("NFC").replace(/[^\n\x20-\xFF]/g, (c) => ({ "Ł": "L", "ł": "l", "Đ": "D", "đ": "d", "ı": "i", "Ő": "Ö", "ő": "ö", "Ű": "Ü", "ű": "ü" })[c] || c.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
 }
@@ -2334,15 +2375,23 @@ async function buildResumePdf(text) {
   return doc.output("blob");
 }
 async function buildLetterPdf(text) {
-  const { doc, W, H } = newPdf(), M = 72, w = W - 2 * M, size = 11, lh = 15.5;
-  let y = M;
-  doc.setFont("helvetica", "normal"); doc.setFontSize(size); doc.setTextColor(25);
-  for (const raw of pdfSafe(text).replace(/\r/g, "").split("\n")) {
-    if (!raw.trim()) { y += lh * 0.6; continue; }
-    for (const line of doc.splitTextToSize(raw.trim(), w)) {
-      if (y + lh > H - M) { doc.addPage(); y = M; }
-      doc.text(line, M, y + size); y += lh;
+  const { doc, W, H } = newPdf(), M = 72, w = W - 2 * M, lh = 15.5, de = $("region").value === "de";
+  let y = M - 14;
+  const room = (need) => { if (y + need > H - M) { doc.addPage(); y = M; } };
+  const write = (t, { size = 11, bold = false, color = 25, align = "left", step = lh } = {}) => {
+    doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(size); doc.setTextColor(color);
+    for (const line of doc.splitTextToSize(t, w)) { room(step); doc.text(line, align === "right" ? W - M : M, y + size, { align }); y += step; }
+  };
+  for (const { text: raw, role } of letterParts(pdfSafe(text))) {
+    const t = raw.trim();
+    if (role === "gap") { y += lh * 0.6; continue; }
+    if (role === "name") { write(t, { size: 18, bold: true, step: 24 }); continue; }
+    if (role === "contact") {
+      write(t, { size: 9.5, color: 80, step: 13 });
+      // a thin rule under the letterhead, the same as on the resume PDF
+      y += 6; doc.setDrawColor(160); doc.setLineWidth(0.6); doc.line(M, y, W - M, y); y += 8; continue;
     }
+    write(t, { bold: role === "subject", align: role === "date" && de ? "right" : "left" });
   }
   return doc.output("blob");
 }
@@ -2351,7 +2400,7 @@ const fileBase = () => {
   return /^[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ .'-]{1,60}$/.test(first) ? first.replace(/[^a-z0-9À-ɏ]+/gi, "-").replace(/^-|-$/g, "") : "";
 };
 $("dlLetter").onclick = async () => {
-  const btn = $("dlLetter"), text = $("letter").innerText.trim();
+  const btn = $("dlLetter"), text = letterText().trim();
   if (!text) return;
   const n = (text.match(/\[[^\]\n]{1,80}\]/g) || []).length;
   if (n) { say(`Fill in the ${n} ${n === 1 ? "blank" : "blanks"} in [brackets] first, or delete ${n === 1 ? "it" : "them"}. Then download.`); flash("beforeSend"); return; }
@@ -2398,7 +2447,7 @@ function saveOuts(tab) {
   try {
     for (const k of ["review", "match"]) if (o.outs[k] && o.keys?.[k]) { paint(k, o.outs[k]); outs[k] = o.outs[k]; lastRun[k] = o.keys[k]; $("rt-" + k).hidden = false; shown = shown || k; }
     if (o.outs.letter && o.keys?.letter) {
-      outs.letter = o.outs.letter; lastRun.letter = o.keys.letter; $("letter").textContent = o.outs.letter; $("rt-letter").hidden = false;
+      outs.letter = o.outs.letter; lastRun.letter = o.keys.letter; showLetter($("letter"), o.outs.letter); $("rt-letter").hidden = false;
       $("copyLetter").disabled = false; $("dlLetter").disabled = false; sendCheck(); shown = shown || "letter";
     }
   } catch { outs = {}; kinds.forEach(k => { delete lastRun[k]; $("rt-" + k).hidden = true; }); store.set("rd.out", ""); return; }

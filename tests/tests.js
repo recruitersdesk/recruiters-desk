@@ -165,6 +165,13 @@ async function pdfText(blob) {
     ok("FAQ: questions in plain words, folded; hidden inside claude.ai where Claude runs it", $("faq") && $("faq").querySelectorAll("details").length >= 6 && ![...$("faq").querySelectorAll("details")].some(d => d.open) && $("faq").hidden === true);
     ok("country guides are linked from every page with full addresses", [...document.querySelectorAll(".foot .guides a")].length === 10 && [...document.querySelectorAll(".foot .guides a")].every(a => a.href.startsWith("https://recruiters-desk.pages.dev/")));
     ok("feedback: footer link to the public forms", [...document.querySelectorAll(".foot a")].some(a => a.href.endsWith("/issues/new/choose")));
+    const L0 = "Priya Sharma\nToronto, ON • 416-555-0100 • priya@example.com\n\nNovember 6, 2026\n\nMaple Health\n\nRe: Application for Junior AI Engineer\n\nDear Hiring Manager,\n\nFirst paragraph.\n\nSecond paragraph.\n\nSincerely,\nPriya Sharma";
+    const lb = $("letter"), keepL = lb.innerText; showLetter(lb, L0);
+    ok("letter: letterhead, date and bold subject are marked, and the text reads back unchanged", letterText(lb) === L0 && lb.querySelector(".l-name").textContent === "Priya Sharma" && lb.querySelector(".l-contact").textContent.includes("priya@example.com") && lb.querySelector(".l-date").textContent === "November 6, 2026" && lb.querySelector(".l-subject").textContent.startsWith("Re:") && lb.querySelectorAll(".l-subject").length === 1, JSON.stringify(letterText(lb)));
+    const de = letterParts("Anna Schmidt\nBerlin • anna@example.de\n\nBerlin, 6. November 2026\n\nBewerbung als Data Analyst\n\nSehr geehrte Frau Weber,\n\nText.\n\nMit freundlichen Grüßen\nAnna Schmidt");
+    ok("letter: German letters get the date and a bold 'Bewerbung als' subject", de.find(x => x.role === "date")?.text.includes("2026") && de.find(x => x.role === "subject")?.text.startsWith("Bewerbung"));
+    showLetter(lb, keepL);
+    ok("PDF: a bullet starting a line stays a list item; between details it becomes a middle dot", pdfSafe("• Built X\nToronto • 416 • a@b.co") === "- Built X\nToronto · 416 · a@b.co", pdfSafe("• Built X\nToronto • 416 • a@b.co"));
     ok("lists from the model can't break the page with a null", arr([null, { a: 1 }, undefined]).length === 1);
     // style nits never lead the plan
     const ps = planSteps({ red_flags: [{ issue: "Inconsistent bullet punctuation – some end with periods" }, { issue: "Contact line uses pipes (|)" }, { issue: "Misspelled \"Pyhton\" (should be \"Python\")" }], missing: [{ item: "Numbers" }] });
