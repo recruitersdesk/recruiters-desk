@@ -79,7 +79,7 @@ async function pdfText(blob) {
     const c3 = __calls.at(-1), L = $("letter").textContent;
     ok("letter: streamed text shown", L.includes("Priya Sharma") && L.includes("<what>"), L);
     ok("letter: Canadian format asked for", c3.input.includes("business-letter format used in Canada") && c3.input.includes("Dear Hiring Manager,") && /Re: Application for/.test(c3.input) && /\w+ \d{1,2}, 20\d\d/.test(c3.input));
-    ok("letter: default settings sent, no cache", c3.kind === "text" && c3.input.includes("about 250 words") && c3.input.includes("polished and professional") && c3.opts.cache === false);
+    ok("letter: default settings sent, no cache", c3.kind === "text" && c3.input.includes("about 200 words") && c3.input.includes("polished and professional") && c3.opts.cache === false);
     ok("letter: copy + download enabled", !$("copyLetter").disabled && !$("dlLetter").disabled);
     ok("letter: before-you-send list counts brackets", !$("beforeSend").hidden && $("sendBrackets").textContent.startsWith("Fill in 1 blank"), $("sendBrackets").textContent);
     $("letter").textContent = "Dear Ms. Lee,\n\nSincerely,\nPriya"; $("letter").dispatchEvent(new Event("input"));
@@ -172,6 +172,8 @@ async function pdfText(blob) {
     ok("letter: German letters get the date and a bold 'Bewerbung als' subject", de.find(x => x.role === "date")?.text.includes("2026") && de.find(x => x.role === "subject")?.text.startsWith("Bewerbung"));
     showLetter(lb, keepL);
     ok("PDF: a bullet starting a line stays a list item; between details it becomes a middle dot", pdfSafe("• Built X\nToronto • 416 • a@b.co") === "- Built X\nToronto · 416 · a@b.co", pdfSafe("• Built X\nToronto • 416 • a@b.co"));
+    ok("letter: the word count covers only the body", bodyWords("Name\nCity\n\nDate\n\nDear Hiring Manager,\n\none two three four\n\nfive six\n\nSincerely,\nName") === 6);
+    ok("letter prompt: short sentences, no tool lists, show don't claim, ~200 words by default", LETTER_PROMPT("r", "j", "professional", "standard").includes("about 200 words") && LETTER_PROMPT("r", "j", "professional", "standard").includes("No lists of tools") && LETTER_PROMPT("r", "j", "professional", "standard").includes("Show, don't claim"));
     ok("lists from the model can't break the page with a null", arr([null, { a: 1 }, undefined]).length === 1);
     // style nits never lead the plan
     const ps = planSteps({ red_flags: [{ issue: "Inconsistent bullet punctuation – some end with periods" }, { issue: "Contact line uses pipes (|)" }, { issue: "Misspelled \"Pyhton\" (should be \"Python\")" }], missing: [{ item: "Numbers" }] });

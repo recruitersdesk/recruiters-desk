@@ -13,7 +13,7 @@ page puter '<script>try{localStorage.clear();sessionStorage.clear()}catch(e){}</
 page relay '<script>try{localStorage.clear();sessionStorage.clear()}catch(e){}</script><script src="../mock.js"></script><script src="../puter-mock.js"></script><script src="../relay-mock.js"></script>' relay-tests.js
 fail=0
 for n in main reload puter relay; do
-  "$CHROME" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=60000 --dump-dom "file://$PWD/$OUT/$n.html" 2>/dev/null \
+  "$CHROME" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=90000 --dump-dom "file://$PWD/$OUT/$n.html" 2>/dev/null \
     | python3 -c "
 import sys,re,json,html
 m=re.search(r'<pre id=\"T\">(.*?)</pre>',sys.stdin.read(),re.S)

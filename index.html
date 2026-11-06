@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="20261106101302">
+<meta name="build" content="20261106101809">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="canonical" href="https://recruiters-desk.pages.dev/">
 <script>if (/\.github\.io$/.test(location.hostname)) location.replace("https://recruiters-desk.pages.dev/" + location.search + location.hash)</script>
@@ -672,8 +672,8 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
             <label for="length">Length
               <select id="length">
                 <option value="short">Short · ~150 words</option>
-                <option value="standard" selected>Standard · ~250 words</option>
-                <option value="detailed">Detailed · ~350 words</option>
+                <option value="standard" selected>Standard · ~200 words</option>
+                <option value="detailed">Detailed · ~280 words</option>
               </select>
             </label>
             <button class="btn-ghost" id="rewrite" type="button">Rewrite</button>
@@ -687,6 +687,7 @@ ol.q { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
             <div class="plan-head"><h3>Before you send it</h3><p>A recruiter notices each of these.</p></div>
             <ol class="sendlist">
               <li id="sendBrackets"></li>
+              <li id="sendLength"></li>
               <li id="sendClaims" hidden></li>
               <li><span><b>Find the hiring manager's name.</b> Check the job post, the company's LinkedIn page or its team page. "Dear Hiring Manager," is fine if you can't find it.</span></li>
               <li><span><b>Read it out loud once.</b> Change any line that doesn't sound like you. Recruiters spot letters that read as generic.</span></li>
@@ -1590,7 +1591,9 @@ ${regionRules(r)}
 
 ${ATS}`;
 
-const LENGTHS = { short: "about 150 words, 3 short paragraphs", standard: "about 250 words, 4 paragraphs", detailed: "about 350 words, 4-5 paragraphs" };
+// hiring managers skim: a standard letter is about 200 words, in short paragraphs of 2-3 sentences
+const LENGTHS = { short: "about 150 words: 3 short paragraphs, one achievement", standard: "about 200 words: 4 short paragraphs, two achievements", detailed: "about 280 words: 4-5 short paragraphs, three achievements" };
+const WORDS = { short: 150, standard: 200, detailed: 280 };
 const TONES = { professional: "polished and professional", warm: "warm, personable and genuine", direct: "direct, confident and concise" };
 const today = (r = R()) => new Date().toLocaleDateString(r.locale, { year: "numeric", month: "long", day: "numeric" });
 const LETTER_PROMPT = (resume, jd, toneKey, lenKey, r = R()) => `Write a tailored cover letter for this candidate and this job, in the standard business-letter format used in ${r.name}, and ATS-friendly. Write it in the language of the job post (English unless the post is written in another language).
@@ -1606,16 +1609,20 @@ Layout, as plain text lines, in this order:
 
 Rules:
 - Use ONLY facts from the resume. Never invent employers, numbers, skills or achievements. Every claim must trace to a specific line of the resume: no frequency words ("daily", "routinely"), soft skills or activities (presenting, mentoring, cross-functional work) unless the resume says them, and a skill that only appears in a skills list is "experience with", not daily use.
-- Open with a specific hook connecting the candidate's strongest relevant experience to what this role needs. Never open with "I am writing to", "I'm excited to apply" or similar.
-- Pick the 2-3 resume achievements most relevant to the job's top requirements and connect each to a requirement, reusing the job's own language naturally.
+Write it the way a busy hiring manager reads: in under a minute, looking for "can this person do the job, and what will they bring to my team?"
+- Paragraph 1 (2 sentences): name the exact role, then the single strongest proof from the resume that they can do it.
+- Then one short paragraph per achievement (2-3 sentences each): what they did, the result, and which requirement in the post it answers. Choose the achievements that match the post's top requirements.
+- Then 1-2 sentences on what they would bring to this team, based only on what the post says the team does.
+- End with one sentence asking for a conversation. Never open with "I am writing to", "I'm excited to apply" or similar.
 - If there's an obvious gap, don't apologize for it; show adjacent evidence instead.
-- Show you understand what the company or team is trying to do, based only on the job post.
-- Close with a confident, specific call to action.
+- Show, don't claim: let the achievement prove the fit. Never write that experience "aligns with", "mirrors" or "matches" the role, or that it is "exactly what you need".
+- Plain, short sentences: under 25 words each, everyday words, no dashes joining clauses.
+- No lists of tools or skills: name at most two tools in a sentence, and only where they prove an achievement. The resume already lists the full stack.
 - Tone: ${TONES[toneKey]}. Body length: ${LENGTHS[lenKey]}. The whole letter must fit on one page.
 - Use the job's key terms exactly as the post writes them, and its exact job title, so an applicant tracking system matches them. Plain text only: no bullets, symbols, emoji, tables or bold.
 - Spelling: ${r.spelling}, throughout.
 - No personal details beyond the contact line (no age, photo, marital or family status, religion or ID numbers). Mention work eligibility${r.work ? ` (e.g. ${r.work})` : ""} only if the resume states it.
-- Avoid clichés: "passionate", "team player", "hit the ground running", "perfect fit", "dynamic".
+- Avoid clichés and filler: "passionate", "team player", "hit the ground running", "perfect fit", "dynamic", "leverage", "culminated", "spearheaded", "synergy", "cutting-edge", "next-gen", "fast-paced", "I am confident that".
 - Use [brackets] for anything else you don't know. Never guess a name, address or number.
 - Output only the letter. No preface, no notes, no markdown.
 
@@ -2266,12 +2273,23 @@ async function run(kind) {
   }
 }
 // the first "before you send" item counts what's still in [brackets], live as the letter is edited
+// words between the greeting and the sign-off
+function bodyWords(t) {
+  const lines = str(t).split("\n").map(l => l.trim()), i = lines.findIndex(l => /^(dear|sehr geehrte|hello|hi)\b/i.test(l));
+  const body = (i >= 0 ? lines.slice(i + 1) : lines).filter(Boolean);
+  return wc((i >= 0 ? body.slice(0, -2) : body).join(" "));
+}
 function sendCheck() {
   const t = letterText() || "", n = (t.match(/\[[^\]\n]{1,80}\]/g) || []).length, li = $("sendBrackets");
   $("beforeSend").hidden = !t.trim();
   li.className = n ? "" : "ok";
   li.replaceChildren(h("span", {}, n ? h("b", {}, `Fill in ${n} ${n === 1 ? "blank" : "blanks"} in [brackets].`) : h("b", {}, "No [brackets] left to fill."),
     n ? " Use real details only, or delete the phrase." : " Every placeholder is filled in."));
+  // length of the body (greeting to sign-off): hiring managers skim, so a long letter gets less read, not more
+  const words = bodyWords(t), want = WORDS[$("length").value] || 200, lg = $("sendLength"), long = words > want * 1.3;
+  lg.hidden = !words; lg.className = long ? "" : "ok";
+  lg.replaceChildren(h("span", {}, long ? h("b", {}, `It's ${words} words; aim for about ${want}.`) : h("b", {}, `${words} words: quick to read.`),
+    long ? " Hiring managers skim. Cut the weakest paragraph or any list of tools, or pick a shorter length and click Rewrite." : " A hiring manager can read it in under a minute."));
   // claim words the AI likes to add that aren't on the resume: the applicant should confirm or cut each one
   const res = resumeEl.value.toLowerCase(), claims = [...new Set((t.match(CLAIMS) || []).map(x => x.toLowerCase()))].filter(w => !res.includes(w));
   const cl = $("sendClaims"); cl.hidden = !claims.length;
